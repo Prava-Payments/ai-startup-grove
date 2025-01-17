@@ -13,6 +13,13 @@ export interface Category {
   name: string;
   description: string;
   icon: string;
-  startups: AIStartup[];
+  startups: {
+    id: string;
+    name: string;
+    description: string;
+    logo: string;
+    features: string[];
+    url: string;
+  }[];
   totalStartups: number;
 }

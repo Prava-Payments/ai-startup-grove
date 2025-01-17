@@ -1,10 +1,16 @@
-import { AIStartup } from "@/types/directory";
 import { Card, CardContent, CardHeader } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { ExternalLink } from "lucide-react";
 
 interface StartupCardProps {
-  startup: AIStartup;
+  startup: {
+    id: string;
+    name: string;
+    description: string;
+    logo: string;
+    features: string[];
+    url: string;
+  };
 }
 
 export const StartupCard = ({ startup }: StartupCardProps) => {
