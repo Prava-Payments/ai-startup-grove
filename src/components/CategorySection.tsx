@@ -1,10 +1,10 @@
 import { Category } from "@/types/directory";
 import { StartupCard } from "./StartupCard";
-import { Brain, Robot, Users } from "lucide-react";
+import { Brain, Bot, Users } from "lucide-react";
 
 const iconMap: { [key: string]: any } = {
   brain: Brain,
-  robot: Robot,
+  robot: Bot,
   users: Users,
 };
 
