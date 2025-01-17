@@ -3,6 +3,7 @@ import { Category } from "@/types/directory";
 import { CategorySection } from "@/components/CategorySection";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { Tables } from "@/integrations/supabase/types";
 
 const Index = () => {
   const { data: startups, isLoading } = useQuery({
@@ -13,7 +14,7 @@ const Index = () => {
         .select("*");
       
       if (error) throw error;
-      return data;
+      return data as Tables<"AI Agent Data">[];
     },
   });
 
@@ -50,7 +51,7 @@ const Index = () => {
 };
 
 // Helper function to process startups into categories
-const processStartupsIntoCategories = (startups: any[]): Category[] => {
+const processStartupsIntoCategories = (startups: Tables<"AI Agent Data">[]): Category[] => {
   // Group startups by category
   const groupedStartups = startups.reduce((acc, startup) => {
     const category = startup.product_category || "Uncategorized";
@@ -59,7 +60,7 @@ const processStartupsIntoCategories = (startups: any[]): Category[] => {
     }
     acc[category].push(startup);
     return acc;
-  }, {} as Record<string, any[]>);
+  }, {} as Record<string, Tables<"AI Agent Data">[]>);
 
   // Convert grouped startups into Category objects
   return Object.entries(groupedStartups).map(([categoryName, categoryStartups]) => ({
