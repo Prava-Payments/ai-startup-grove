@@ -1,10 +1,11 @@
 export interface AIStartup {
-  id: string;
+  unique_id: number;
   name: string;
-  description: string;
-  logo: string;
-  features: string[];
-  url: string;
+  product_description: string;
+  product_preview_image: string;
+  product_category: string;
+  tag_line: string;
+  website_url: string;
 }
 
 export interface Category {
@@ -13,4 +14,5 @@ export interface Category {
   description: string;
   icon: string;
   startups: AIStartup[];
+  totalStartups: number;
 }

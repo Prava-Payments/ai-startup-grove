@@ -1,92 +1,45 @@
+import { useQuery } from "@tanstack/react-query";
 import { Category } from "@/types/directory";
 import { CategorySection } from "@/components/CategorySection";
-
-const categories: Category[] = [
-  {
-    id: "1",
-    name: "Conversational AI",
-    description: "AI agents that excel at natural language interactions",
-    icon: "brain",
-    startups: [
-      {
-        id: "1",
-        name: "ChatGenius",
-        description: "Advanced conversational AI for customer support automation",
-        logo: "/placeholder.svg",
-        features: ["24/7 Support", "Multi-language", "Custom Training"],
-        url: "#",
-      },
-      {
-        id: "2",
-        name: "DialogFlow Pro",
-        description: "Enterprise-grade chatbots with deep learning capabilities",
-        logo: "/placeholder.svg",
-        features: ["Voice Recognition", "Intent Analysis", "API Integration"],
-        url: "#",
-      },
-    ],
-  },
-  {
-    id: "2",
-    name: "Task Automation",
-    description: "AI-powered tools for workflow automation",
-    icon: "robot",
-    startups: [
-      {
-        id: "3",
-        name: "AutoTask AI",
-        description: "Intelligent process automation for businesses",
-        logo: "/placeholder.svg",
-        features: ["Workflow Builder", "Smart Scheduling", "Analytics"],
-        url: "#",
-      },
-      {
-        id: "4",
-        name: "TaskMaster",
-        description: "AI-driven productivity suite for teams",
-        logo: "/placeholder.svg",
-        features: ["Team Collaboration", "Process Mining", "Custom Rules"],
-        url: "#",
-      },
-    ],
-  },
-  {
-    id: "3",
-    name: "Personal Assistants",
-    description: "AI companions for daily productivity",
-    icon: "users",
-    startups: [
-      {
-        id: "5",
-        name: "AIDiary",
-        description: "Your personal AI writing and journaling companion",
-        logo: "/placeholder.svg",
-        features: ["Smart Writing", "Mood Analysis", "Goal Tracking"],
-        url: "#",
-      },
-      {
-        id: "6",
-        name: "LifeOS",
-        description: "All-in-one AI life management platform",
-        logo: "/placeholder.svg",
-        features: ["Task Management", "Health Tracking", "Smart Calendar"],
-        url: "#",
-      },
-    ],
-  },
-];
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
 
 const Index = () => {
+  const { data: startups, isLoading } = useQuery({
+    queryKey: ["ai-startups"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("AI Agent Data")
+        .select("*");
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Process startups into categories
+  const categories: Category[] = startups ? processStartupsIntoCategories(startups) : [];
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <div className="container py-12">
         <header className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">AI Agent Directory</h1>
-          <p className="text-xl text-gray-600">
+          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            AI Agent Directory
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Discover the most innovative AI startups across different categories
           </p>
         </header>
-        <main>
+        <main className="grid gap-8">
           {categories.map((category) => (
             <CategorySection key={category.id} category={category} />
           ))}
@@ -94,6 +47,46 @@ const Index = () => {
       </div>
     </div>
   );
+};
+
+// Helper function to process startups into categories
+const processStartupsIntoCategories = (startups: any[]): Category[] => {
+  // Group startups by category
+  const groupedStartups = startups.reduce((acc, startup) => {
+    const category = startup.product_category || "Uncategorized";
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(startup);
+    return acc;
+  }, {} as Record<string, any[]>);
+
+  // Convert grouped startups into Category objects
+  return Object.entries(groupedStartups).map(([categoryName, categoryStartups]) => ({
+    id: categoryName.toLowerCase().replace(/\s+/g, "-"),
+    name: categoryName,
+    description: `Discover innovative ${categoryName} solutions`,
+    icon: getCategoryIcon(categoryName),
+    startups: categoryStartups.map(startup => ({
+      id: startup.unique_id.toString(),
+      name: startup.name || "",
+      description: startup.product_description || "",
+      logo: startup.product_preview_image || "/placeholder.svg",
+      features: startup.tag_line ? [startup.tag_line] : [],
+      url: startup.website_url || "#",
+    })),
+    totalStartups: categoryStartups.length,
+  }));
+};
+
+// Helper function to determine category icon
+const getCategoryIcon = (categoryName: string): string => {
+  const nameToIcon: Record<string, string> = {
+    "Conversational AI": "brain",
+    "Task Automation": "robot",
+    "Personal Assistants": "users",
+  };
+  return nameToIcon[categoryName] || "brain";
 };
 
 export default Index;
