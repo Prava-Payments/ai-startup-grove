@@ -1,11 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { Category } from "@/types/directory";
 import { CategorySection } from "@/components/CategorySection";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
+import { StartupDetails } from "@/components/StartupDetails";
 
 const Index = () => {
+  const [selectedStartup, setSelectedStartup] = useState<Tables<"AI Agent Data"> | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
   const { data: startups, isLoading } = useQuery({
     queryKey: ["ai-startups"],
     queryFn: async () => {
@@ -29,6 +34,8 @@ const Index = () => {
     );
   }
 
+  const selectedCategoryData = categories.find(cat => cat.id === selectedCategory);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <div className="container py-12">
@@ -41,9 +48,42 @@ const Index = () => {
           </p>
         </header>
         <main className="grid gap-8">
-          {categories.map((category) => (
-            <CategorySection key={category.id} category={category} />
-          ))}
+          {selectedCategory ? (
+            <div className="grid grid-cols-12 gap-6">
+              <div className="col-span-12 lg:col-span-8">
+                <button
+                  onClick={() => setSelectedCategory(null)}
+                  className="mb-6 text-primary hover:text-primary/80 flex items-center gap-2"
+                >
+                  ← Back to Categories
+                </button>
+                <CategorySection 
+                  category={selectedCategoryData!} 
+                  onStartupClick={setSelectedStartup}
+                />
+              </div>
+              <div className="col-span-12 lg:col-span-4">
+                {selectedStartup && (
+                  <StartupDetails 
+                    startup={selectedStartup} 
+                    onClose={() => setSelectedStartup(null)} 
+                  />
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {categories.map((category) => (
+                <div
+                  key={category.id}
+                  onClick={() => setSelectedCategory(category.id)}
+                  className="cursor-pointer"
+                >
+                  <CategorySection category={category} isPreview />
+                </div>
+              ))}
+            </div>
+          )}
         </main>
       </div>
     </div>

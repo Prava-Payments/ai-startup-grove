@@ -2,6 +2,7 @@ import { Category } from "@/types/directory";
 import { StartupCard } from "./StartupCard";
 import { Brain, Bot, Users } from "lucide-react";
 import { Card } from "./ui/card";
+import { Tables } from "@/integrations/supabase/types";
 
 const iconMap: { [key: string]: any } = {
   brain: Brain,
@@ -11,13 +12,15 @@ const iconMap: { [key: string]: any } = {
 
 interface CategorySectionProps {
   category: Category;
+  isPreview?: boolean;
+  onStartupClick?: (startup: Tables<"AI Agent Data">) => void;
 }
 
-export const CategorySection = ({ category }: CategorySectionProps) => {
+export const CategorySection = ({ category, isPreview = false, onStartupClick }: CategorySectionProps) => {
   const IconComponent = iconMap[category.icon] || Brain;
 
   return (
-    <section className="mb-12">
+    <section className={isPreview ? "" : "mb-12"}>
       <Card className="p-6 mb-8 hover:shadow-lg transition-shadow duration-200">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-primary/10 rounded-lg">
@@ -34,11 +37,17 @@ export const CategorySection = ({ category }: CategorySectionProps) => {
           </div>
         </div>
       </Card>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {category.startups.map((startup) => (
-          <StartupCard key={startup.id} startup={startup} />
-        ))}
-      </div>
+      {!isPreview && (
+        <div className="grid grid-cols-1 gap-6">
+          {category.startups.map((startup) => (
+            <StartupCard 
+              key={startup.id} 
+              startup={startup} 
+              onClick={onStartupClick}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 };

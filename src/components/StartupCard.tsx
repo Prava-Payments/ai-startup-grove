@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { ExternalLink } from "lucide-react";
+import { Tables } from "@/integrations/supabase/types";
 
 interface StartupCardProps {
   startup: {
@@ -11,11 +12,15 @@ interface StartupCardProps {
     features: string[];
     url: string;
   };
+  onClick?: (startup: Tables<"AI Agent Data">) => void;
 }
 
-export const StartupCard = ({ startup }: StartupCardProps) => {
+export const StartupCard = ({ startup, onClick }: StartupCardProps) => {
   return (
-    <Card className="hover:animate-card-hover transition-all duration-200 cursor-pointer group">
+    <Card 
+      className="hover:animate-card-hover transition-all duration-200 cursor-pointer group"
+      onClick={() => onClick?.(startup as unknown as Tables<"AI Agent Data">)}
+    >
       <CardHeader className="flex flex-row items-center gap-4">
         <img src={startup.logo} alt={startup.name} className="w-12 h-12 rounded-lg object-cover" />
         <div className="flex-1">
@@ -26,6 +31,7 @@ export const StartupCard = ({ startup }: StartupCardProps) => {
               target="_blank"
               rel="noopener noreferrer"
               className="opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => e.stopPropagation()}
             >
               <ExternalLink className="w-4 h-4" />
             </a>
