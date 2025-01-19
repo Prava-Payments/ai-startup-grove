@@ -23,8 +23,10 @@ const Index = () => {
     },
   });
 
-  // Process startups into categories
-  const categories: Category[] = startups ? processStartupsIntoCategories(startups) : [];
+  // Process startups into categories and sort by total startups
+  const categories: Category[] = startups 
+    ? processStartupsIntoCategories(startups).sort((a, b) => b.totalStartups - a.totalStartups)
+    : [];
 
   if (isLoading) {
     return (
@@ -47,7 +49,7 @@ const Index = () => {
             Discover the most innovative AI startups across different categories
           </p>
         </header>
-        <main className="grid gap-8">
+        <main>
           {selectedCategory ? (
             <div className="grid grid-cols-12 gap-6">
               <div className="col-span-12 lg:col-span-8">
@@ -72,7 +74,7 @@ const Index = () => {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {categories.map((category) => (
                 <div
                   key={category.id}
