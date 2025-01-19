@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import { StartupDetails } from "@/components/StartupDetails";
+import { motion, AnimatePresence } from "framer-motion";
 
 const Index = () => {
   const [selectedStartup, setSelectedStartup] = useState<Tables<"AI Agent Data"> | null>(null);
@@ -23,7 +24,6 @@ const Index = () => {
     },
   });
 
-  // Process startups into categories and sort by total startups
   const categories: Category[] = startups 
     ? processStartupsIntoCategories(startups).sort((a, b) => b.totalStartups - a.totalStartups)
     : [];
@@ -51,8 +51,14 @@ const Index = () => {
         </header>
         <main>
           {selectedCategory ? (
-            <div className="grid grid-cols-12 gap-6">
-              <div className="col-span-12 lg:col-span-8">
+            <motion.div 
+              className="grid grid-cols-12 gap-6"
+              animate={{ 
+                marginRight: selectedStartup ? "400px" : "0px" 
+              }}
+              transition={{ type: "spring", damping: 20, stiffness: 100 }}
+            >
+              <div className="col-span-12">
                 <button
                   onClick={() => setSelectedCategory(null)}
                   className="mb-6 text-primary hover:text-primary/80 flex items-center gap-2"
@@ -64,17 +70,9 @@ const Index = () => {
                   onStartupClick={setSelectedStartup}
                 />
               </div>
-              <div className="col-span-12 lg:col-span-4">
-                {selectedStartup && (
-                  <StartupDetails 
-                    startup={selectedStartup} 
-                    onClose={() => setSelectedStartup(null)} 
-                  />
-                )}
-              </div>
-            </div>
+            </motion.div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {categories.map((category) => (
                 <div
                   key={category.id}
@@ -88,6 +86,12 @@ const Index = () => {
           )}
         </main>
       </div>
+      {selectedStartup && (
+        <StartupDetails 
+          startup={selectedStartup} 
+          onClose={() => setSelectedStartup(null)} 
+        />
+      )}
     </div>
   );
 };
