@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Category } from "@/types/directory";
 import { CategorySection } from "@/components/CategorySection";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,8 +11,9 @@ import { motion, AnimatePresence } from "framer-motion";
 const Index = () => {
   const [selectedStartup, setSelectedStartup] = useState<Tables<"AI Agent Data"> | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [mainContentWidth, setMainContentWidth] = useState<string>("100%");
 
-  const { data: startups, isLoading } = useQuery({
+  const { data: startups, isLoading, error } = useQuery({
     queryKey: ["ai-startups"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -20,14 +21,16 @@ const Index = () => {
         .select("*");
       
       if (error) throw error;
-      return data as Tables<"AI Agent Data">[];
+      return data || []; // Ensure we always return an array
     },
   });
 
-  const categories: Category[] = startups 
-    ? processStartupsIntoCategories(startups).sort((a, b) => b.totalStartups - a.totalStartups)
-    : [];
+  useEffect(() => {
+    // Adjust main content width when startup details panel is opened/closed
+    setMainContentWidth(selectedStartup ? "calc(100% - 400px)" : "100%");
+  }, [selectedStartup]);
 
+  // Handle loading state
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -35,6 +38,19 @@ const Index = () => {
       </div>
     );
   }
+
+  // Handle error state
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-red-500">
+        <p>Error loading data. Please try again later.</p>
+      </div>
+    );
+  }
+
+  const categories: Category[] = startups 
+    ? processStartupsIntoCategories(startups).sort((a, b) => b.totalStartups - a.totalStartups)
+    : [];
 
   const selectedCategoryData = categories.find(cat => cat.id === selectedCategory);
 
@@ -49,49 +65,57 @@ const Index = () => {
             Discover the most innovative AI startups across different categories
           </p>
         </header>
-        <main>
-          {selectedCategory ? (
-            <motion.div 
-              className="grid grid-cols-12 gap-6"
-              animate={{ 
-                marginRight: selectedStartup ? "400px" : "0px" 
-              }}
-              transition={{ type: "spring", damping: 20, stiffness: 100 }}
-            >
-              <div className="col-span-12">
+        <main className="relative">
+          <motion.div 
+            className="transition-all duration-300 ease-in-out"
+            style={{ width: mainContentWidth }}
+            animate={{ 
+              width: mainContentWidth,
+            }}
+            transition={{ type: "spring", damping: 20, stiffness: 100 }}
+          >
+            {selectedCategory ? (
+              <div className="pr-4">
                 <button
-                  onClick={() => setSelectedCategory(null)}
+                  onClick={() => {
+                    setSelectedCategory(null);
+                    setSelectedStartup(null);
+                  }}
                   className="mb-6 text-primary hover:text-primary/80 flex items-center gap-2"
                 >
                   ← Back to Categories
                 </button>
-                <CategorySection 
-                  category={selectedCategoryData!} 
-                  onStartupClick={setSelectedStartup}
-                />
+                {selectedCategoryData && (
+                  <CategorySection 
+                    category={selectedCategoryData} 
+                    onStartupClick={setSelectedStartup}
+                  />
+                )}
               </div>
-            </motion.div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {categories.map((category) => (
-                <div
-                  key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
-                  className="cursor-pointer"
-                >
-                  <CategorySection category={category} isPreview />
-                </div>
-              ))}
-            </div>
-          )}
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {categories.map((category) => (
+                  <div
+                    key={category.id}
+                    onClick={() => setSelectedCategory(category.id)}
+                    className="cursor-pointer"
+                  >
+                    <CategorySection category={category} isPreview />
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+          <AnimatePresence>
+            {selectedStartup && (
+              <StartupDetails 
+                startup={selectedStartup} 
+                onClose={() => setSelectedStartup(null)} 
+              />
+            )}
+          </AnimatePresence>
         </main>
       </div>
-      {selectedStartup && (
-        <StartupDetails 
-          startup={selectedStartup} 
-          onClose={() => setSelectedStartup(null)} 
-        />
-      )}
     </div>
   );
 };
