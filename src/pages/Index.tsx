@@ -21,16 +21,14 @@ const Index = () => {
         .select("*");
       
       if (error) throw error;
-      return data || []; // Ensure we always return an array
+      return data || [];
     },
   });
 
   useEffect(() => {
-    // Adjust main content width when startup details panel is opened/closed
     setMainContentWidth(selectedStartup ? "calc(100% - 400px)" : "100%");
   }, [selectedStartup]);
 
-  // Handle loading state
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -39,7 +37,6 @@ const Index = () => {
     );
   }
 
-  // Handle error state
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center text-red-500">
@@ -56,7 +53,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
-      <div className="container py-12">
+      <div className="container py-12 relative">
         <header className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
             AI Agent Directory
@@ -65,65 +62,60 @@ const Index = () => {
             Discover the most innovative AI startups across different categories
           </p>
         </header>
-        <main className="relative">
-          <motion.div 
-            className="transition-all duration-300 ease-in-out"
-            style={{ width: mainContentWidth }}
-            animate={{ 
-              width: mainContentWidth,
-            }}
-            transition={{ type: "spring", damping: 20, stiffness: 100 }}
-          >
-            {selectedCategory ? (
-              <div className="pr-4">
-                <button
-                  onClick={() => {
-                    setSelectedCategory(null);
-                    setSelectedStartup(null);
-                  }}
-                  className="mb-6 text-primary hover:text-primary/80 flex items-center gap-2"
+        <motion.div 
+          className="transition-all duration-300 ease-in-out"
+          style={{ width: mainContentWidth }}
+          animate={{ width: mainContentWidth }}
+          transition={{ type: "spring", damping: 20, stiffness: 100 }}
+        >
+          {selectedCategory ? (
+            <div className="pr-4">
+              <button
+                onClick={() => {
+                  setSelectedCategory(null);
+                  setSelectedStartup(null);
+                }}
+                className="mb-6 text-primary hover:text-primary/80 flex items-center gap-2"
+              >
+                ← Back to Categories
+              </button>
+              {selectedCategoryData && (
+                <CategorySection 
+                  category={selectedCategoryData} 
+                  onStartupClick={setSelectedStartup}
+                />
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {categories.map((category) => (
+                <div
+                  key={category.id}
+                  onClick={() => setSelectedCategory(category.id)}
+                  className="cursor-pointer"
                 >
-                  ← Back to Categories
-                </button>
-                {selectedCategoryData && (
-                  <CategorySection 
-                    category={selectedCategoryData} 
-                    onStartupClick={setSelectedStartup}
-                  />
-                )}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {categories.map((category) => (
-                  <div
-                    key={category.id}
-                    onClick={() => setSelectedCategory(category.id)}
-                    className="cursor-pointer"
-                  >
-                    <CategorySection category={category} isPreview />
-                  </div>
-                ))}
-              </div>
-            )}
-          </motion.div>
-          <AnimatePresence>
-            {selectedStartup && (
-              <StartupDetails 
-                startup={selectedStartup} 
-                onClose={() => setSelectedStartup(null)} 
-              />
-            )}
-          </AnimatePresence>
-        </main>
+                  <CategorySection category={category} isPreview />
+                </div>
+              ))}
+            </div>
+          )}
+        </motion.div>
+        <AnimatePresence>
+          {selectedStartup && (
+            <StartupDetails 
+              startup={selectedStartup} 
+              onClose={() => setSelectedStartup(null)} 
+            />
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
 };
 
-// Helper function to process startups into categories
 const processStartupsIntoCategories = (startups: Tables<"AI Agent Data">[]): Category[] => {
-  // Group startups by category
   const groupedStartups = startups.reduce((acc, startup) => {
+    if (!startup) return acc;
     const category = startup.product_category || "Uncategorized";
     if (!acc[category]) {
       acc[category] = [];
@@ -132,7 +124,6 @@ const processStartupsIntoCategories = (startups: Tables<"AI Agent Data">[]): Cat
     return acc;
   }, {} as Record<string, Tables<"AI Agent Data">[]>);
 
-  // Convert grouped startups into Category objects
   return Object.entries(groupedStartups).map(([categoryName, categoryStartups]) => ({
     id: categoryName.toLowerCase().replace(/\s+/g, "-"),
     name: categoryName,
@@ -150,7 +141,6 @@ const processStartupsIntoCategories = (startups: Tables<"AI Agent Data">[]): Cat
   }));
 };
 
-// Helper function to determine category icon
 const getCategoryIcon = (categoryName: string): string => {
   const nameToIcon: Record<string, string> = {
     "Conversational AI": "brain",
