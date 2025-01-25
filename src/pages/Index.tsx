@@ -49,7 +49,9 @@ const Index = () => {
     ? processStartupsIntoCategories(startups).sort((a, b) => b.totalStartups - a.totalStartups)
     : [];
 
-  const selectedCategoryData = categories.find(cat => cat.id === selectedCategory);
+  const selectedCategoryData = selectedCategory 
+    ? categories.find(cat => cat.id === selectedCategory)
+    : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
@@ -100,7 +102,7 @@ const Index = () => {
             </div>
           )}
         </motion.div>
-        <AnimatePresence>
+        <AnimatePresence mode="wait">
           {selectedStartup && (
             <StartupDetails 
               startup={selectedStartup} 
