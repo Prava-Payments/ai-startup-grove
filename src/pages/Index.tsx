@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 const Index = () => {
   const [selectedStartup, setSelectedStartup] = useState<Tables<"AI Agent Data"> | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [mainContentWidth, setMainContentWidth] = useState<string>("100%");
+  const [mainContentWidth, setMainContentWidth] = useState("100%");
 
   const { data: startups, isLoading, error } = useQuery({
     queryKey: ["ai-startups"],
@@ -27,7 +27,11 @@ const Index = () => {
 
   // Update mainContentWidth when selectedStartup changes
   useState(() => {
-    setMainContentWidth(selectedStartup ? "calc(100% - 400px)" : "100%");
+    if (selectedStartup) {
+      setMainContentWidth("calc(100% - 400px)");
+    } else {
+      setMainContentWidth("100%");
+    }
   }, [selectedStartup]);
 
   if (isLoading) {
@@ -131,7 +135,7 @@ const processStartupsIntoCategories = (startups: Tables<"AI Agent Data">[]): Cat
     id: categoryName.toLowerCase().replace(/\s+/g, "-"),
     name: categoryName,
     description: `Discover innovative ${categoryName} solutions`,
-    icon: getCategoryIcon(categoryName),
+    icon: categoryName.toLowerCase().replace(/\s+/g, "-"),
     startups: categoryStartups.map(startup => ({
       id: startup.unique_id.toString(),
       name: startup.name || "",
