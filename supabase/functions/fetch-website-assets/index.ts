@@ -35,7 +35,6 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           faviconUrl: null,
-          screenshotUrl: null,
           message: 'Invalid URL format' 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
@@ -52,7 +51,6 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           faviconUrl: null,
-          screenshotUrl: null,
           error: 'Invalid URL format' 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
