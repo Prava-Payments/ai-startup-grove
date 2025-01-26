@@ -12,14 +12,35 @@ const TIMEOUT = 10000; // 10 seconds
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 200
+    });
   }
 
   try {
-    console.log('Received request to fetch-website-assets')
+    console.log('Received request to fetch-website-assets');
     
-    const { websiteUrl, uniqueId } = await req.json()
-    console.log('Processing request for:', { websiteUrl, uniqueId })
+    // Parse request body
+    let body;
+    try {
+      body = await req.json();
+    } catch (error) {
+      console.error('Error parsing request body:', error);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid request body',
+          details: error.message 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
+        }
+      );
+    }
+
+    const { websiteUrl, uniqueId } = body;
+    console.log('Processing request for:', { websiteUrl, uniqueId });
 
     if (!websiteUrl || !uniqueId) {
       return new Response(
@@ -29,26 +50,26 @@ serve(async (req) => {
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200 
+          status: 400
         }
-      )
+      );
     }
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    );
 
-    let formattedUrl = websiteUrl
+    let formattedUrl = websiteUrl;
     if (!formattedUrl.startsWith('http')) {
-      formattedUrl = `https://${formattedUrl}`
+      formattedUrl = `https://${formattedUrl}`;
     }
     
-    let hostname
+    let hostname;
     try {
-      hostname = new URL(formattedUrl).hostname
+      hostname = new URL(formattedUrl).hostname;
     } catch (e) {
-      console.error('Invalid URL:', formattedUrl, e)
+      console.error('Invalid URL:', formattedUrl, e);
       return new Response(
         JSON.stringify({ 
           error: `Invalid URL: ${formattedUrl}`,
@@ -56,9 +77,9 @@ serve(async (req) => {
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200
+          status: 400
         }
-      )
+      );
     }
 
     const faviconUrls = [
@@ -108,9 +129,9 @@ serve(async (req) => {
 
       if (faviconBlob) break;
       
-      // Wait before retry
       if (retry < MAX_RETRIES - 1) {
-        await new Promise(resolve => setTimeout(resolve, 1000 * (retry + 1)));
+        const delay = Math.pow(2, retry) * 1000; // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
 
@@ -123,49 +144,50 @@ serve(async (req) => {
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200
+          status: 200 // Return 200 even for business logic failures
         }
       );
     }
 
     console.log('Successfully fetched favicon from:', successfulUrl);
     
-    const fileName = `${uniqueId}.png`
+    const fileName = `${uniqueId}.png`;
     const { error: uploadError } = await supabase.storage
       .from('favicons')
       .upload(fileName, faviconBlob, {
         contentType: 'image/png',
         upsert: true
-      })
+      });
 
     if (uploadError) {
       console.error('Failed to upload favicon:', uploadError);
       return new Response(
         JSON.stringify({ 
           error: 'Failed to upload favicon',
+          details: uploadError.message,
           faviconUrl: null 
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200
+          status: 200 // Return 200 even for business logic failures
         }
-      )
+      );
     }
 
     const { data: { publicUrl } } = supabase.storage
       .from('favicons')
-      .getPublicUrl(fileName)
+      .getPublicUrl(fileName);
 
     const { error: updateError } = await supabase
       .from('AI Agent Data')
       .update({ favicon_url: publicUrl })
-      .eq('unique_id', uniqueId)
+      .eq('unique_id', uniqueId);
 
     if (updateError) {
       console.error('Failed to update database:', updateError);
     }
 
-    console.log('Successfully processed favicon:', publicUrl)
+    console.log('Successfully processed favicon:', publicUrl);
     return new Response(
       JSON.stringify({ 
         faviconUrl: publicUrl,
@@ -175,10 +197,10 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
       }
-    )
+    );
 
   } catch (error) {
-    console.error('Unhandled error:', error)
+    console.error('Unhandled error:', error);
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error',
@@ -187,8 +209,8 @@ serve(async (req) => {
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-        status: 200
+        status: 200 // Return 200 even for internal errors to prevent CORS issues
       }
-    )
+    );
   }
-})
+});
