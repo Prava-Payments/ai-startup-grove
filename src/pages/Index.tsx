@@ -3,32 +3,27 @@ import { useState, useEffect } from "react";
 import { Category } from "@/types/directory";
 import { CategorySection } from "@/components/CategorySection";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  Loader2, Brain, Bot, Users, Code, 
-  MessageSquare, Zap, Briefcase, Lightbulb, 
-  Boxes 
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import { StartupDetails } from "@/components/StartupDetails";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Define icon mapping with proper types
-type IconType = typeof Brain;
-const iconMap: Record<string, IconType> = {
-  'Conversational AI': MessageSquare,
-  'Task Automation': Zap,
-  'Personal Assistants': Users,
-  'Developer Tools': Code,
-  'Business Solutions': Briefcase,
-  'Innovation': Lightbulb,
-  'AI Research': Brain,
-  'Robotics': Bot,
-  'Other': Boxes
-};
-
-const getCategoryIcon = (categoryName: string): IconType => {
-  if (!categoryName) return Brain;
-  return iconMap[categoryName] || Brain;
+const getCategoryIcon = (categoryName: string): string => {
+  if (!categoryName) return "brain";
+  
+  const nameToIcon: Record<string, string> = {
+    "Conversational AI": "chat",
+    "Task Automation": "automation",
+    "Personal Assistants": "users",
+    "Developer Tools": "code",
+    "Business Solutions": "business",
+    "Innovation": "innovation",
+    "AI Research": "brain",
+    "Robotics": "robot",
+    "Other": "other"
+  };
+  
+  return nameToIcon[categoryName] || "brain";
 };
 
 const Index = () => {
