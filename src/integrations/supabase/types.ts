@@ -39,6 +39,42 @@ export type Database = {
         }
         Relationships: []
       }
+      websites: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          favicon_url: string | null
+          retry_count: number | null
+          screenshot_url: string | null
+          status: string | null
+          unique_id: number
+          updated_at: string
+          website_url: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          favicon_url?: string | null
+          retry_count?: number | null
+          screenshot_url?: string | null
+          status?: string | null
+          unique_id?: number
+          updated_at?: string
+          website_url: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          favicon_url?: string | null
+          retry_count?: number | null
+          screenshot_url?: string | null
+          status?: string | null
+          unique_id?: number
+          updated_at?: string
+          website_url?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
