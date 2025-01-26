@@ -11,28 +11,34 @@ export type Database = {
     Tables: {
       "AI Agent Data": {
         Row: {
+          favicon_url: string | null
           name: string | null
           product_category: string | null
           product_description: string | null
           product_preview_image: string | null
+          screenshot_url: string | null
           tag_line: string | null
           unique_id: number
           website_url: string | null
         }
         Insert: {
+          favicon_url?: string | null
           name?: string | null
           product_category?: string | null
           product_description?: string | null
           product_preview_image?: string | null
+          screenshot_url?: string | null
           tag_line?: string | null
           unique_id: number
           website_url?: string | null
         }
         Update: {
+          favicon_url?: string | null
           name?: string | null
           product_category?: string | null
           product_description?: string | null
           product_preview_image?: string | null
+          screenshot_url?: string | null
           tag_line?: string | null
           unique_id?: number
           website_url?: string | null

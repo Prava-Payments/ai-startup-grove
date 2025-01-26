@@ -1,6 +1,9 @@
 import { Category } from "@/types/directory";
 import { StartupCard } from "./StartupCard";
-import { Brain, Bot, Users, Code, MessageSquare, Zap, Briefcase, Lightbulb, Boxes } from "lucide-react";
+import { 
+  Brain, Bot, Users, Code, MessageSquare, 
+  Zap, Briefcase, Lightbulb, Boxes 
+} from "lucide-react";
 import { Card } from "./ui/card";
 import { Tables } from "@/integrations/supabase/types";
 
@@ -78,11 +81,8 @@ export const CategorySection = ({ category, isPreview = false, onStartupClick }:
     return null;
   }
 
-  // Ensure we have a valid category name
   const categoryName = formatCategoryName(category.name);
-  // Get the icon key and ensure it exists in our icon map
   const iconKey = getCategoryIcon(categoryName);
-  // Get the icon component, falling back to Brain if something goes wrong
   const IconComponent = iconMap[iconKey] || Brain;
 
   return (

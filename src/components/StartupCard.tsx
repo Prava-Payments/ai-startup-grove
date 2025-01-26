@@ -2,9 +2,6 @@ import { Card, CardHeader } from "./ui/card";
 import { ExternalLink } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 
 interface StartupCardProps {
   startup: {
@@ -20,55 +17,6 @@ interface StartupCardProps {
 }
 
 export const StartupCard = ({ startup, index, onClick }: StartupCardProps) => {
-  const [favicon, setFavicon] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
-
-  useEffect(() => {
-    const fetchFavicon = async () => {
-      // Skip invalid URLs early
-      if (!startup?.url || startup.url === '#' || !startup.url.includes('.')) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        console.log('Fetching favicon for:', startup.url);
-        
-        const { data, error } = await supabase.functions.invoke('fetch-favicon', {
-          body: {
-            websiteUrl: startup.url,
-            uniqueId: startup.id
-          }
-        });
-
-        if (error) {
-          console.error('Error invoking fetch-favicon function:', error);
-          toast({
-            title: "Error",
-            description: "Failed to fetch website icon. Using default logo.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        if (data?.faviconUrl) {
-          console.log('Favicon fetched successfully:', data.faviconUrl);
-          setFavicon(data.faviconUrl);
-        } else if (data?.error) {
-          console.warn('Favicon fetch warning:', data.error);
-        }
-      } catch (error) {
-        console.error('Error in fetchFavicon:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchFavicon();
-  }, [startup?.url, startup?.id]);
-
   // Early return if startup is null or undefined
   if (!startup || typeof startup !== 'object') {
     console.warn('StartupCard received invalid startup data');
@@ -88,6 +36,8 @@ export const StartupCard = ({ startup, index, onClick }: StartupCardProps) => {
         product_category: "",
         tag_line: startup.features?.[0] || "",
         website_url: startup.url || "",
+        favicon_url: null,
+        screenshot_url: null
       };
       onClick(startupData);
     } catch (error) {
@@ -111,19 +61,15 @@ export const StartupCard = ({ startup, index, onClick }: StartupCardProps) => {
               {String(index).padStart(2, '0')}.
             </span>
             <div className="relative">
-              {isLoading ? (
-                <div className="w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-700 animate-pulse" />
-              ) : (
-                <img 
-                  src={favicon || startup.logo || '/placeholder.svg'} 
-                  alt={startup.name || 'Startup logo'} 
-                  className="w-12 h-12 rounded-lg object-cover bg-white dark:bg-gray-700 p-1 border border-gray-200/50 dark:border-gray-700/50 transition-transform group-hover:scale-105"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = startup.logo || '/placeholder.svg';
-                  }}
-                />
-              )}
+              <img 
+                src={startup.logo || '/placeholder.svg'} 
+                alt={startup.name || 'Startup logo'} 
+                className="w-12 h-12 rounded-lg object-cover bg-white dark:bg-gray-700 p-1 border border-gray-200/50 dark:border-gray-700/50 transition-transform group-hover:scale-105"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = '/placeholder.svg';
+                }}
+              />
               <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           </div>

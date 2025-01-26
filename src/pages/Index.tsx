@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Category } from "@/types/directory";
 import { CategorySection } from "@/components/CategorySection";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,7 +25,8 @@ const Index = () => {
     },
   });
 
-  useEffect(() => {
+  // Update mainContentWidth when selectedStartup changes
+  useState(() => {
     setMainContentWidth(selectedStartup ? "calc(100% - 400px)" : "100%");
   }, [selectedStartup]);
 
@@ -135,21 +136,12 @@ const processStartupsIntoCategories = (startups: Tables<"AI Agent Data">[]): Cat
       id: startup.unique_id.toString(),
       name: startup.name || "",
       description: startup.product_description || "",
-      logo: startup.product_preview_image || "/placeholder.svg",
+      logo: startup.favicon_url || startup.product_preview_image || "/placeholder.svg",
       features: startup.tag_line ? [startup.tag_line] : [],
       url: startup.website_url || "#",
     })),
     totalStartups: categoryStartups.length,
   }));
-};
-
-const getCategoryIcon = (categoryName: string): string => {
-  const nameToIcon: Record<string, string> = {
-    "Conversational AI": "brain",
-    "Task Automation": "robot",
-    "Personal Assistants": "users",
-  };
-  return nameToIcon[categoryName] || "brain";
 };
 
 export default Index;
