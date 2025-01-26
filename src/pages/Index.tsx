@@ -3,15 +3,39 @@ import { useState, useEffect } from "react";
 import { Category } from "@/types/directory";
 import { CategorySection } from "@/components/CategorySection";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, Book, Database, Cog, Server, User, Users, Computer, Smartphone, Globe, BarChart } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import { StartupDetails } from "@/components/StartupDetails";
 import { motion, AnimatePresence } from "framer-motion";
+
+const getCategoryIcon = (categoryName: string) => {
+  const iconMap: { [key: string]: any } = {
+    'documentation': Book,
+    'database': Database,
+    'settings': Cog,
+    'server': Server,
+    'user': User,
+    'community': Users,
+    'desktop': Computer,
+    'mobile': Smartphone,
+    'web': Globe,
+    'analytics': BarChart,
+    // Add default icon for unknown categories
+    'default': Globe
+  };
+
+  const normalizedCategory = categoryName.toLowerCase().replace(/\s+/g, '-');
+  return iconMap[normalizedCategory] || iconMap.default;
+};
 
 const Index = () => {
   const [selectedStartup, setSelectedStartup] = useState<Tables<"AI Agent Data"> | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [mainContentWidth, setMainContentWidth] = useState("100%");
+
+  useEffect(() => {
+    setMainContentWidth(selectedStartup ? "calc(100% - 400px)" : "100%");
+  }, [selectedStartup]);
 
   const { data: startups, isLoading, error } = useQuery({
     queryKey: ["ai-startups"],
@@ -24,11 +48,6 @@ const Index = () => {
       return data || [];
     },
   });
-
-  // Update mainContentWidth when selectedStartup changes
-  useEffect(() => {
-    setMainContentWidth(selectedStartup ? "calc(100% - 400px)" : "100%");
-  }, [selectedStartup]);
 
   if (isLoading) {
     return (
@@ -131,7 +150,7 @@ const processStartupsIntoCategories = (startups: Tables<"AI Agent Data">[]): Cat
     id: categoryName.toLowerCase().replace(/\s+/g, "-"),
     name: categoryName,
     description: `Discover innovative ${categoryName} solutions`,
-    icon: categoryName.toLowerCase().replace(/\s+/g, "-"),
+    icon: getCategoryIcon(categoryName),
     startups: categoryStartups.map(startup => ({
       id: startup.unique_id.toString(),
       name: startup.name || "",
