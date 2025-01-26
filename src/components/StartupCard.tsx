@@ -2,6 +2,7 @@ import { Card, CardHeader } from "./ui/card";
 import { ExternalLink } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import { motion } from "framer-motion";
+import { toast } from "@/components/ui/use-toast";
 
 interface StartupCardProps {
   startup: {
@@ -52,6 +53,11 @@ export const StartupCard = ({ startup, index, onClick }: StartupCardProps) => {
       onClick(startupData);
     } catch (error) {
       console.error('Error processing startup data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process startup data",
+        variant: "destructive",
+      });
     }
   };
 

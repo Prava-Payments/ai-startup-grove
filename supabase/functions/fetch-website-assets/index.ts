@@ -6,6 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const MAX_RETRIES = 3;
+const TIMEOUT = 10000; // 10 seconds
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -15,75 +18,68 @@ serve(async (req) => {
   try {
     console.log('Received request to fetch-website-assets')
     
-    // Parse request body
     const { websiteUrl, uniqueId } = await req.json()
     console.log('Processing request for:', { websiteUrl, uniqueId })
 
-    // Validate required parameters
     if (!websiteUrl || !uniqueId) {
-      console.error('Missing required parameters:', { websiteUrl, uniqueId })
       return new Response(
         JSON.stringify({ 
           error: 'Website URL and unique ID are required',
           faviconUrl: null 
         }),
         { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200 
         }
       )
     }
 
-    // Initialize Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    let formattedUrl = websiteUrl
+    if (!formattedUrl.startsWith('http')) {
+      formattedUrl = `https://${formattedUrl}`
+    }
+    
+    let hostname
     try {
-      // Format URL properly
-      let formattedUrl = websiteUrl
-      if (!formattedUrl.startsWith('http')) {
-        formattedUrl = `https://${formattedUrl}`
-      }
-      
-      // Get hostname safely
-      let hostname
-      try {
-        hostname = new URL(formattedUrl).hostname
-      } catch (e) {
-        console.error('Invalid URL:', formattedUrl, e)
-        return new Response(
-          JSON.stringify({ 
-            error: `Invalid URL: ${formattedUrl}`,
-            faviconUrl: null 
-          }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200
-          }
-        )
-      }
+      hostname = new URL(formattedUrl).hostname
+    } catch (e) {
+      console.error('Invalid URL:', formattedUrl, e)
+      return new Response(
+        JSON.stringify({ 
+          error: `Invalid URL: ${formattedUrl}`,
+          faviconUrl: null 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        }
+      )
+    }
 
-      // Array of possible favicon URLs to try
-      const faviconUrls = [
-        `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`,
-        `${formattedUrl}/favicon.ico`,
-        `${formattedUrl}/favicon.png`,
-        `https://icon.horse/icon/${hostname}`,
-        `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${hostname}&size=128`
-      ];
+    const faviconUrls = [
+      `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`,
+      `${formattedUrl}/favicon.ico`,
+      `${formattedUrl}/favicon.png`,
+      `https://icon.horse/icon/${hostname}`,
+      `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${hostname}&size=128`
+    ];
 
-      let faviconBlob = null;
-      let successfulUrl = null;
+    let faviconBlob = null;
+    let successfulUrl = null;
+    let lastError = null;
 
-      // Try each URL until we get a valid favicon
+    for (let retry = 0; retry < MAX_RETRIES; retry++) {
       for (const url of faviconUrls) {
-        console.log('Attempting to fetch favicon from:', url);
-        
         try {
+          console.log(`Attempt ${retry + 1} - Trying URL: ${url}`);
+          
           const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 10000); // Increased timeout to 10 seconds
+          const timeout = setTimeout(() => controller.abort(), TIMEOUT);
           
           const response = await fetch(url, { 
             signal: controller.signal,
@@ -104,92 +100,82 @@ serve(async (req) => {
             }
           }
         } catch (error) {
+          lastError = error;
           console.log(`Failed to fetch from ${url}:`, error.message);
           continue;
         }
       }
 
-      if (!faviconBlob) {
-        console.log('No valid favicon found for:', hostname);
-        return new Response(
-          JSON.stringify({ 
-            faviconUrl: null,
-            message: 'No valid favicon found for the website' 
-          }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200
-          }
-        );
-      }
-
-      console.log('Successfully fetched favicon from:', successfulUrl);
+      if (faviconBlob) break;
       
-      // Upload to Supabase Storage
-      const fileName = `${uniqueId}.png`
-      const { error: uploadError } = await supabase.storage
-        .from('favicons')
-        .upload(fileName, faviconBlob, {
-          contentType: 'image/png',
-          upsert: true
-        })
-
-      if (uploadError) {
-        console.error('Failed to upload favicon:', uploadError);
-        return new Response(
-          JSON.stringify({ 
-            error: 'Failed to upload favicon',
-            faviconUrl: null 
-          }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200
-          }
-        )
+      // Wait before retry
+      if (retry < MAX_RETRIES - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retry + 1)));
       }
+    }
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('favicons')
-        .getPublicUrl(fileName)
-
-      // Update the database with the favicon URL
-      const { error: updateError } = await supabase
-        .from('AI Agent Data')
-        .update({ favicon_url: publicUrl })
-        .eq('unique_id', uniqueId)
-
-      if (updateError) {
-        console.error('Failed to update database:', updateError);
-        // Continue execution even if database update fails
-      }
-
-      console.log('Successfully processed favicon:', publicUrl)
+    if (!faviconBlob) {
+      console.log('No valid favicon found after all retries');
       return new Response(
         JSON.stringify({ 
-          faviconUrl: publicUrl,
-          message: 'Favicon processed successfully' 
+          error: lastError?.message || 'Could not fetch a valid favicon',
+          faviconUrl: null 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        }
+      );
+    }
+
+    console.log('Successfully fetched favicon from:', successfulUrl);
+    
+    const fileName = `${uniqueId}.png`
+    const { error: uploadError } = await supabase.storage
+      .from('favicons')
+      .upload(fileName, faviconBlob, {
+        contentType: 'image/png',
+        upsert: true
+      })
+
+    if (uploadError) {
+      console.error('Failed to upload favicon:', uploadError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Failed to upload favicon',
+          faviconUrl: null 
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200
         }
       )
-
-    } catch (error) {
-      console.error('Error processing favicon:', error)
-      return new Response(
-        JSON.stringify({ 
-          error: error.message,
-          details: 'Failed to process favicon',
-          faviconUrl: null
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: 200
-        }
-      )
     }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('favicons')
+      .getPublicUrl(fileName)
+
+    const { error: updateError } = await supabase
+      .from('AI Agent Data')
+      .update({ favicon_url: publicUrl })
+      .eq('unique_id', uniqueId)
+
+    if (updateError) {
+      console.error('Failed to update database:', updateError);
+    }
+
+    console.log('Successfully processed favicon:', publicUrl)
+    return new Response(
+      JSON.stringify({ 
+        faviconUrl: publicUrl,
+        message: 'Favicon processed successfully' 
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      }
+    )
 
   } catch (error) {
     console.error('Unhandled error:', error)
