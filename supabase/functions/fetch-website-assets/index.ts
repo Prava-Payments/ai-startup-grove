@@ -24,7 +24,10 @@ serve(async (req) => {
       console.error('Missing required parameters:', { websiteUrl, uniqueId })
       return new Response(
         JSON.stringify({ error: 'Website URL and unique ID are required' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 400 
+        }
       )
     }
 
@@ -35,14 +38,27 @@ serve(async (req) => {
     )
 
     try {
+      // Format URL properly
+      let formattedUrl = websiteUrl
+      if (!formattedUrl.startsWith('http')) {
+        formattedUrl = `https://${formattedUrl}`
+      }
+      
+      // Get hostname safely
+      let hostname
+      try {
+        hostname = new URL(formattedUrl).hostname
+      } catch (e) {
+        throw new Error(`Invalid URL: ${formattedUrl}`)
+      }
+
       // Get favicon using Google's favicon service
-      const hostname = new URL(websiteUrl).hostname
       const faviconUrl = `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`
       console.log('Fetching favicon from:', faviconUrl)
 
       // Fetch the favicon with timeout
       const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 5000) // 5 second timeout
+      const timeout = setTimeout(() => controller.abort(), 10000) // 10 second timeout
       
       const faviconResponse = await fetch(faviconUrl, { 
         signal: controller.signal 
@@ -52,7 +68,15 @@ serve(async (req) => {
         throw new Error(`Failed to fetch favicon: ${faviconResponse.statusText}`)
       }
 
+      const contentType = faviconResponse.headers.get('content-type')
+      if (!contentType || !contentType.includes('image')) {
+        throw new Error('Invalid favicon content type')
+      }
+
       const faviconBlob = await faviconResponse.blob()
+      if (faviconBlob.size === 0) {
+        throw new Error('Empty favicon received')
+      }
       
       // Upload to Supabase Storage
       const fileName = `${uniqueId}.png`
@@ -88,16 +112,23 @@ serve(async (req) => {
           faviconUrl: publicUrl,
           message: 'Favicon processed successfully' 
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        }
       )
 
     } catch (error) {
       console.error('Error processing favicon:', error)
       return new Response(
         JSON.stringify({ 
-          error: error.message 
+          error: error.message,
+          details: 'Failed to process favicon'
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 500 
+        }
       )
     }
 
@@ -108,7 +139,10 @@ serve(async (req) => {
         error: 'Internal server error',
         details: error.message 
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+        status: 500 
+      }
     )
   }
 })
