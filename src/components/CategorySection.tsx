@@ -8,13 +8,8 @@ import {
 import { Card } from "./ui/card";
 import { Tables } from "@/integrations/supabase/types";
 
-// Define a type for the icon map to ensure type safety
-type IconMapType = {
-  [key: string]: LucideIcon;
-};
-
-// Map of category names to icon components
-const iconMap: IconMapType = {
+// Define a strict type for the icon map
+const iconMap: Record<string, LucideIcon> = {
   brain: Brain,
   robot: Bot,
   users: Users,
@@ -53,7 +48,8 @@ const getCategoryIcon = (categoryName: string): keyof typeof iconMap => {
     "Other": "other"
   };
   
-  return nameToIcon[categoryName] || "brain";
+  const iconKey = nameToIcon[categoryName];
+  return iconKey && iconMap[iconKey] ? iconKey : "brain";
 };
 
 const getCategoryDescription = (categoryName: string): string => {
@@ -129,12 +125,14 @@ export const CategorySection = ({ category, isPreview = false, onStartupClick }:
           </Card>
           <div className="space-y-4">
             {Array.isArray(category.startups) && category.startups.map((startup, index) => (
-              <StartupCard 
-                key={startup.id} 
-                startup={startup}
-                index={index + 1}
-                onClick={onStartupClick}
-              />
+              startup && (
+                <StartupCard 
+                  key={startup.id} 
+                  startup={startup}
+                  index={index + 1}
+                  onClick={onStartupClick}
+                />
+              )
             ))}
           </div>
         </>
