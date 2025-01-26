@@ -14,41 +14,26 @@ serve(async (req) => {
 
   try {
     // Parse request body
-    let body;
-    try {
-      body = await req.json()
-    } catch (error) {
+    const body = await req.json().catch(error => {
       console.error('Error parsing request body:', error)
-      return new Response(
-        JSON.stringify({ error: 'Invalid request body' }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400 
-        }
-      )
-    }
+      throw new Error('Invalid request body')
+    })
 
     const { websiteUrl, uniqueId } = body
 
     // Validate required parameters
     if (!websiteUrl || !uniqueId) {
       console.error('Missing required parameters:', { websiteUrl, uniqueId })
-      return new Response(
-        JSON.stringify({ error: 'Website URL and unique ID are required' }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400 
-        }
-      )
+      throw new Error('Website URL and unique ID are required')
     }
 
-    // Skip invalid URLs
-    if (websiteUrl === '#' || websiteUrl === 'https://#' || !websiteUrl.includes('.')) {
+    // Skip invalid URLs early
+    if (websiteUrl === '#' || !websiteUrl.includes('.')) {
       console.log('Skipping invalid URL:', websiteUrl)
       return new Response(
         JSON.stringify({ 
           faviconUrl: null,
-          message: 'Skipped invalid URL' 
+          message: 'Invalid URL format' 
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -58,10 +43,10 @@ serve(async (req) => {
     }
 
     // Format and validate URL
-    let formattedUrl: string;
+    let formattedUrl: string
     try {
       formattedUrl = websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`
-      new URL(formattedUrl)
+      new URL(formattedUrl) // This will throw if URL is invalid
     } catch (error) {
       console.error('URL validation error:', error)
       return new Response(
@@ -79,8 +64,14 @@ serve(async (req) => {
     // Get favicon using Google's favicon service
     const faviconUrl = `https://www.google.com/s2/favicons?domain=${new URL(formattedUrl).hostname}&sz=128`
     
-    // Fetch the favicon
+    // Initialize Supabase client
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
     try {
+      // Fetch the favicon
       const faviconResponse = await fetch(faviconUrl)
       if (!faviconResponse.ok) {
         throw new Error(`Failed to fetch favicon: ${faviconResponse.statusText}`)
@@ -88,15 +79,9 @@ serve(async (req) => {
 
       const faviconBlob = await faviconResponse.blob()
       
-      // Initialize Supabase client
-      const supabase = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      )
-
       // Upload to Supabase Storage
       const fileName = `${uniqueId}.png`
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('favicons')
         .upload(fileName, faviconBlob, {
           contentType: 'image/png',
