@@ -1,5 +1,5 @@
 import { Card, CardHeader } from "./ui/card";
-import { ExternalLink, Image } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
@@ -24,15 +24,16 @@ export const StartupCard = ({ startup, index, onClick }: StartupCardProps) => {
 
   useEffect(() => {
     const fetchFavicon = async () => {
-      if (!startup?.url || startup.url === '#') {
+      // Skip invalid URLs early
+      if (!startup?.url || startup.url === '#' || !startup.url.includes('.')) {
         setIsLoading(false);
         return;
       }
 
       try {
         setIsLoading(true);
+        console.log('Fetching favicon for:', startup.url);
         
-        // Call the fetch-favicon function
         const { data, error } = await supabase.functions.invoke('fetch-favicon', {
           body: {
             websiteUrl: startup.url,
@@ -41,12 +42,15 @@ export const StartupCard = ({ startup, index, onClick }: StartupCardProps) => {
         });
 
         if (error) {
-          console.error('Error fetching favicon:', error);
+          console.error('Error invoking fetch-favicon function:', error);
           return;
         }
 
         if (data?.faviconUrl) {
+          console.log('Favicon fetched successfully:', data.faviconUrl);
           setFavicon(data.faviconUrl);
+        } else if (data?.error) {
+          console.warn('Favicon fetch warning:', data.error);
         }
       } catch (error) {
         console.error('Error in fetchFavicon:', error);
@@ -109,7 +113,7 @@ export const StartupCard = ({ startup, index, onClick }: StartupCardProps) => {
                   className="w-12 h-12 rounded-lg object-cover bg-white dark:bg-gray-700 p-1 border border-gray-200/50 dark:border-gray-700/50 transition-transform group-hover:scale-105"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
-                    target.src = '/placeholder.svg';
+                    target.src = startup.logo || '/placeholder.svg';
                   }}
                 />
               )}
@@ -121,7 +125,7 @@ export const StartupCard = ({ startup, index, onClick }: StartupCardProps) => {
               <h3 className="text-lg font-semibold truncate text-gray-900 dark:text-white group-hover:text-primary transition-colors">
                 {startup.name || 'Unnamed Startup'}
               </h3>
-              {startup.url && startup.url !== '#' && (
+              {startup.url && startup.url !== '#' && startup.url.includes('.') && (
                 <a
                   href={startup.url}
                   target="_blank"
