@@ -13,23 +13,33 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Received request to fetch-favicon')
+    
     // Parse request body
-    const body = await req.json().catch(error => {
+    const { websiteUrl, uniqueId } = await req.json().catch(error => {
       console.error('Error parsing request body:', error)
       throw new Error('Invalid request body')
     })
 
-    const { websiteUrl, uniqueId } = body
+    console.log('Processing request for:', { websiteUrl, uniqueId })
 
     // Validate required parameters
     if (!websiteUrl || !uniqueId) {
       console.error('Missing required parameters:', { websiteUrl, uniqueId })
-      throw new Error('Website URL and unique ID are required')
+      return new Response(
+        JSON.stringify({ 
+          error: 'Website URL and unique ID are required' 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
+        }
+      )
     }
 
     // Skip invalid URLs early
-    if (websiteUrl === '#' || !websiteUrl.includes('.')) {
-      console.log('Skipping invalid URL:', websiteUrl)
+    if (!websiteUrl || websiteUrl === '#' || !websiteUrl.includes('.')) {
+      console.log('Invalid URL format:', websiteUrl)
       return new Response(
         JSON.stringify({ 
           faviconUrl: null,
@@ -46,7 +56,7 @@ serve(async (req) => {
     let formattedUrl: string
     try {
       formattedUrl = websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`
-      new URL(formattedUrl) // This will throw if URL is invalid
+      new URL(formattedUrl) // Validate URL format
     } catch (error) {
       console.error('URL validation error:', error)
       return new Response(
@@ -61,18 +71,38 @@ serve(async (req) => {
       )
     }
 
-    // Get favicon using Google's favicon service
-    const faviconUrl = `https://www.google.com/s2/favicons?domain=${new URL(formattedUrl).hostname}&sz=128`
-    
     // Initialize Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    // Check if favicon already exists in storage
+    const { data: existingFile } = await supabase.storage
+      .from('favicons')
+      .getPublicUrl(`${uniqueId}.png`)
+
+    if (existingFile?.publicUrl) {
+      console.log('Returning existing favicon:', existingFile.publicUrl)
+      return new Response(
+        JSON.stringify({ faviconUrl: existingFile.publicUrl }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Get favicon using Google's favicon service
+    const faviconUrl = `https://www.google.com/s2/favicons?domain=${new URL(formattedUrl).hostname}&sz=128`
+    console.log('Fetching favicon from:', faviconUrl)
+
     try {
-      // Fetch the favicon
-      const faviconResponse = await fetch(faviconUrl)
+      // Fetch the favicon with timeout
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 5000)
+      
+      const faviconResponse = await fetch(faviconUrl, { 
+        signal: controller.signal 
+      }).finally(() => clearTimeout(timeout))
+
       if (!faviconResponse.ok) {
         throw new Error(`Failed to fetch favicon: ${faviconResponse.statusText}`)
       }
@@ -97,6 +127,7 @@ serve(async (req) => {
         .from('favicons')
         .getPublicUrl(fileName)
 
+      console.log('Successfully processed favicon:', publicUrl)
       return new Response(
         JSON.stringify({ faviconUrl: publicUrl }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
