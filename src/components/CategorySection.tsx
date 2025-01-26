@@ -4,7 +4,8 @@ import { Brain, Bot, Users, Code, MessageSquare, Zap, Briefcase, Lightbulb, Boxe
 import { Card } from "./ui/card";
 import { Tables } from "@/integrations/supabase/types";
 
-const iconMap: { [key: string]: any } = {
+// Ensure we have a valid icon mapping for every possible category
+const iconMap = {
   brain: Brain,
   robot: Bot,
   users: Users,
@@ -13,8 +14,10 @@ const iconMap: { [key: string]: any } = {
   automation: Zap,
   business: Briefcase,
   innovation: Lightbulb,
-  other: Boxes
-};
+  other: Boxes,
+  // Add a default fallback
+  default: Brain
+} as const;
 
 interface CategorySectionProps {
   category: Category;
@@ -29,8 +32,9 @@ const formatCategoryName = (name: string) => {
     .join(' ');
 };
 
-const getCategoryIcon = (categoryName: string): string => {
-  const nameToIcon: Record<string, string> = {
+// Ensure we always return a valid icon key
+const getCategoryIcon = (categoryName: string): keyof typeof iconMap => {
+  const nameToIcon: Record<string, keyof typeof iconMap> = {
     "Conversational AI": "chat",
     "Task Automation": "automation",
     "Personal Assistants": "users",
@@ -41,7 +45,7 @@ const getCategoryIcon = (categoryName: string): string => {
     "Robotics": "robot",
     "Other": "other"
   };
-  return nameToIcon[categoryName] || "other";
+  return nameToIcon[categoryName] || "default";
 };
 
 const getCategoryDescription = (categoryName: string): string => {
@@ -61,8 +65,7 @@ const getCategoryDescription = (categoryName: string): string => {
 
 export const CategorySection = ({ category, isPreview = false, onStartupClick }: CategorySectionProps) => {
   const iconKey = getCategoryIcon(formatCategoryName(category.name));
-  // Ensure we always have a valid icon component by providing a fallback
-  const IconComponent = iconMap[iconKey] || Brain;
+  const IconComponent = iconMap[iconKey];
   const categoryName = formatCategoryName(category.name);
 
   return (

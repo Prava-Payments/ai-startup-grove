@@ -4,6 +4,7 @@ import { Tables } from "@/integrations/supabase/types";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface StartupCardProps {
   startup: {
@@ -21,6 +22,7 @@ interface StartupCardProps {
 export const StartupCard = ({ startup, index, onClick }: StartupCardProps) => {
   const [favicon, setFavicon] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchFavicon = async () => {
@@ -43,6 +45,11 @@ export const StartupCard = ({ startup, index, onClick }: StartupCardProps) => {
 
         if (error) {
           console.error('Error invoking fetch-favicon function:', error);
+          toast({
+            title: "Error",
+            description: "Failed to fetch website icon. Using default logo.",
+            variant: "destructive",
+          });
           return;
         }
 
