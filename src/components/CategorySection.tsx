@@ -9,9 +9,11 @@ import { Card } from "./ui/card";
 import { Tables } from "@/integrations/supabase/types";
 
 // Define a type for the icon map to ensure type safety
-type IconMapType = Record<string, LucideIcon>;
+type IconMapType = {
+  [key: string]: LucideIcon;
+};
 
-// Ensure we have a valid icon mapping for every possible category
+// Map of category names to icon components
 const iconMap: IconMapType = {
   brain: Brain,
   robot: Bot,
@@ -38,10 +40,8 @@ const formatCategoryName = (name: string | undefined): string => {
     .join(' ');
 };
 
-const getCategoryIcon = (categoryName: string): string => {
-  if (!categoryName) return "brain";
-  
-  const nameToIcon: Record<string, string> = {
+const getCategoryIcon = (categoryName: string): keyof typeof iconMap => {
+  const nameToIcon: Record<string, keyof typeof iconMap> = {
     "Conversational AI": "chat",
     "Task Automation": "automation",
     "Personal Assistants": "users",
@@ -57,8 +57,6 @@ const getCategoryIcon = (categoryName: string): string => {
 };
 
 const getCategoryDescription = (categoryName: string): string => {
-  if (!categoryName) return "Innovative AI solutions transforming the industry.";
-  
   const descriptions: Record<string, string> = {
     "Conversational AI": "AI-powered chatbots and conversational interfaces that enable natural language interactions.",
     "Task Automation": "Tools and platforms that automate repetitive tasks and streamline workflows.",
@@ -130,7 +128,7 @@ export const CategorySection = ({ category, isPreview = false, onStartupClick }:
             </div>
           </Card>
           <div className="space-y-4">
-            {category.startups.map((startup, index) => (
+            {Array.isArray(category.startups) && category.startups.map((startup, index) => (
               <StartupCard 
                 key={startup.id} 
                 startup={startup}
