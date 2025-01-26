@@ -34,58 +34,64 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Get favicon using Google's favicon service
-    const faviconUrl = `https://www.google.com/s2/favicons?domain=${new URL(websiteUrl).hostname}&sz=128`
-    console.log('Fetching favicon from:', faviconUrl)
-
     try {
-      // Fetch the favicon
-      const faviconResponse = await fetch(faviconUrl)
+      // Get favicon using Google's favicon service
+      const faviconUrl = `https://www.google.com/s2/favicons?domain=${new URL(websiteUrl).hostname}&sz=128`
+      console.log('Fetching favicon from:', faviconUrl)
+
+      // Fetch the favicon with timeout
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+      
+      const faviconResponse = await fetch(faviconUrl, { 
+        signal: controller.signal 
+      }).finally(() => clearTimeout(timeout))
+
       if (!faviconResponse.ok) {
         throw new Error(`Failed to fetch favicon: ${faviconResponse.statusText}`)
       }
 
       const faviconBlob = await faviconResponse.blob()
       
-      // Upload favicon to Supabase Storage
-      const faviconFileName = `${uniqueId}-favicon.png`
-      const { error: faviconUploadError } = await supabase.storage
+      // Upload to Supabase Storage
+      const fileName = `${uniqueId}.png`
+      const { error: uploadError } = await supabase.storage
         .from('favicons')
-        .upload(faviconFileName, faviconBlob, {
+        .upload(fileName, faviconBlob, {
           contentType: 'image/png',
           upsert: true
         })
 
-      if (faviconUploadError) {
-        throw new Error(`Failed to upload favicon: ${faviconUploadError.message}`)
+      if (uploadError) {
+        throw new Error(`Failed to upload favicon: ${uploadError.message}`)
       }
 
-      // Get favicon public URL
-      const { data: { publicUrl: faviconPublicUrl } } = supabase.storage
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
         .from('favicons')
-        .getPublicUrl(faviconFileName)
+        .getPublicUrl(fileName)
 
       // Update the database with the favicon URL
       const { error: updateError } = await supabase
         .from('AI Agent Data')
-        .update({ favicon_url: faviconPublicUrl })
+        .update({ favicon_url: publicUrl })
         .eq('unique_id', uniqueId)
 
       if (updateError) {
         throw new Error(`Failed to update database: ${updateError.message}`)
       }
 
-      console.log('Successfully processed favicon:', faviconPublicUrl)
+      console.log('Successfully processed favicon:', publicUrl)
       return new Response(
         JSON.stringify({ 
-          faviconUrl: faviconPublicUrl,
-          message: 'Assets processed successfully' 
+          faviconUrl: publicUrl,
+          message: 'Favicon processed successfully' 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
 
     } catch (error) {
-      console.error('Error processing assets:', error)
+      console.error('Error processing favicon:', error)
       return new Response(
         JSON.stringify({ 
           error: error.message 
