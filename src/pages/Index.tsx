@@ -3,29 +3,32 @@ import { useState, useEffect } from "react";
 import { Category } from "@/types/directory";
 import { CategorySection } from "@/components/CategorySection";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Book, Database, Cog, Server, User, Users, Computer, Smartphone, Globe, BarChart } from "lucide-react";
+import { 
+  Loader2, Brain, Bot, Users, Code, 
+  MessageSquare, Zap, Briefcase, Lightbulb, 
+  Boxes 
+} from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import { StartupDetails } from "@/components/StartupDetails";
 import { motion, AnimatePresence } from "framer-motion";
 
-const getCategoryIcon = (categoryName: string) => {
-  const iconMap: { [key: string]: any } = {
-    'documentation': Book,
-    'database': Database,
-    'settings': Cog,
-    'server': Server,
-    'user': User,
-    'community': Users,
-    'desktop': Computer,
-    'mobile': Smartphone,
-    'web': Globe,
-    'analytics': BarChart,
-    // Add default icon for unknown categories
-    'default': Globe
-  };
+// Define icon mapping with proper types
+type IconType = typeof Brain;
+const iconMap: Record<string, IconType> = {
+  'Conversational AI': MessageSquare,
+  'Task Automation': Zap,
+  'Personal Assistants': Users,
+  'Developer Tools': Code,
+  'Business Solutions': Briefcase,
+  'Innovation': Lightbulb,
+  'AI Research': Brain,
+  'Robotics': Bot,
+  'Other': Boxes
+};
 
-  const normalizedCategory = categoryName.toLowerCase().replace(/\s+/g, '-');
-  return iconMap[normalizedCategory] || iconMap.default;
+const getCategoryIcon = (categoryName: string): IconType => {
+  if (!categoryName) return Brain;
+  return iconMap[categoryName] || Brain;
 };
 
 const Index = () => {
@@ -136,9 +139,12 @@ const Index = () => {
 };
 
 const processStartupsIntoCategories = (startups: Tables<"AI Agent Data">[]): Category[] => {
+  if (!Array.isArray(startups)) return [];
+
   const groupedStartups = startups.reduce((acc, startup) => {
     if (!startup) return acc;
-    const category = startup.product_category || "Uncategorized";
+    
+    const category = startup.product_category || "Other";
     if (!acc[category]) {
       acc[category] = [];
     }
