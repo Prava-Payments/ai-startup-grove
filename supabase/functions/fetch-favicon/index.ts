@@ -19,12 +19,36 @@ serve(async (req) => {
       throw new Error('Website URL and unique ID are required')
     }
 
+    // Validate URL format
+    if (websiteUrl === '#' || websiteUrl === 'https://#') {
+      console.log('Invalid URL detected:', websiteUrl)
+      return new Response(
+        JSON.stringify({ error: 'Invalid URL provided' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      )
+    }
+
     // Ensure URL is properly formatted
-    const formattedUrl = websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`
-    const url = new URL(formattedUrl)
+    let formattedUrl: string
+    try {
+      formattedUrl = websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`
+      new URL(formattedUrl) // This will throw if URL is invalid
+    } catch (error) {
+      console.log('URL validation error:', error)
+      return new Response(
+        JSON.stringify({ error: 'Invalid URL format' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      )
+    }
     
     // Get favicon using Google's favicon service
-    const faviconUrl = `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=128`
+    const faviconUrl = `https://www.google.com/s2/favicons?domain=${new URL(formattedUrl).hostname}&sz=128`
     
     // Fetch the favicon
     const faviconResponse = await fetch(faviconUrl)
@@ -50,6 +74,7 @@ serve(async (req) => {
       })
 
     if (uploadError) {
+      console.error('Upload error:', uploadError)
       throw new Error(`Failed to upload favicon: ${uploadError.message}`)
     }
 
@@ -69,6 +94,7 @@ serve(async (req) => {
       .eq('unique_id', uniqueId)
 
     if (updateError) {
+      console.error('Database update error:', updateError)
       throw new Error(`Failed to update database: ${updateError.message}`)
     }
 

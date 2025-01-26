@@ -24,7 +24,10 @@ export const StartupCard = ({ startup, index, onClick }: StartupCardProps) => {
 
   useEffect(() => {
     const fetchFavicon = async () => {
-      if (!startup?.url) return;
+      if (!startup?.url || startup.url === '#') {
+        setIsLoading(false);
+        return;
+      }
 
       try {
         setIsLoading(true);
@@ -118,7 +121,7 @@ export const StartupCard = ({ startup, index, onClick }: StartupCardProps) => {
               <h3 className="text-lg font-semibold truncate text-gray-900 dark:text-white group-hover:text-primary transition-colors">
                 {startup.name || 'Unnamed Startup'}
               </h3>
-              {startup.url && (
+              {startup.url && startup.url !== '#' && (
                 <a
                   href={startup.url}
                   target="_blank"
