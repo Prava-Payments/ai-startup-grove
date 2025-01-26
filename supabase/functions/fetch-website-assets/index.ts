@@ -17,7 +17,6 @@ serve(async (req) => {
     
     // Parse request body
     const { websiteUrl, uniqueId } = await req.json()
-
     console.log('Processing request for:', { websiteUrl, uniqueId })
 
     // Validate required parameters
@@ -29,34 +28,6 @@ serve(async (req) => {
       )
     }
 
-    // Skip invalid URLs early
-    if (!websiteUrl || websiteUrl === '#' || !websiteUrl.includes('.')) {
-      console.log('Invalid URL format:', websiteUrl)
-      return new Response(
-        JSON.stringify({ 
-          faviconUrl: null,
-          message: 'Invalid URL format' 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-      )
-    }
-
-    // Format and validate URL
-    let formattedUrl: string
-    try {
-      formattedUrl = websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`
-      new URL(formattedUrl)
-    } catch (error) {
-      console.error('URL validation error:', error)
-      return new Response(
-        JSON.stringify({ 
-          faviconUrl: null,
-          error: 'Invalid URL format' 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-      )
-    }
-
     // Initialize Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -64,7 +35,7 @@ serve(async (req) => {
     )
 
     // Get favicon using Google's favicon service
-    const faviconUrl = `https://www.google.com/s2/favicons?domain=${new URL(formattedUrl).hostname}&sz=128`
+    const faviconUrl = `https://www.google.com/s2/favicons?domain=${new URL(websiteUrl).hostname}&sz=128`
     console.log('Fetching favicon from:', faviconUrl)
 
     try {
@@ -117,10 +88,9 @@ serve(async (req) => {
       console.error('Error processing assets:', error)
       return new Response(
         JSON.stringify({ 
-          faviconUrl: null,
           error: error.message 
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       )
     }
 
