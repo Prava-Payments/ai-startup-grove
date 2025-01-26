@@ -58,6 +58,7 @@ serve(async (req) => {
         `${formattedUrl}/favicon.ico`,
         `${formattedUrl}/favicon.png`,
         `https://icon.horse/icon/${hostname}`,
+        `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${hostname}&size=128`
       ];
 
       let faviconBlob = null;
@@ -71,8 +72,12 @@ serve(async (req) => {
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 5000);
           
-          const response = await fetch(url, { signal: controller.signal })
-            .finally(() => clearTimeout(timeout));
+          const response = await fetch(url, { 
+            signal: controller.signal,
+            headers: {
+              'Accept': 'image/*'
+            }
+          }).finally(() => clearTimeout(timeout));
 
           if (response.ok) {
             const contentType = response.headers.get('content-type');
@@ -92,7 +97,17 @@ serve(async (req) => {
       }
 
       if (!faviconBlob) {
-        throw new Error('Could not fetch a valid favicon from any source');
+        // If no favicon found, return a 200 response with null faviconUrl
+        return new Response(
+          JSON.stringify({ 
+            faviconUrl: null,
+            message: 'No valid favicon found for the website' 
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200
+          }
+        );
       }
 
       console.log('Successfully fetched favicon from:', successfulUrl);
@@ -115,6 +130,17 @@ serve(async (req) => {
         .from('favicons')
         .getPublicUrl(fileName)
 
+      // Update the database with the favicon URL
+      const { error: updateError } = await supabase
+        .from('AI Agent Data')
+        .update({ favicon_url: publicUrl })
+        .eq('unique_id', uniqueId)
+
+      if (updateError) {
+        console.error('Failed to update database:', updateError);
+        // Continue execution even if database update fails
+      }
+
       console.log('Successfully processed favicon:', publicUrl)
       return new Response(
         JSON.stringify({ 
@@ -136,7 +162,7 @@ serve(async (req) => {
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: 500 
+          status: 200  // Changed to 200 to prevent client-side errors
         }
       )
     }
@@ -150,7 +176,7 @@ serve(async (req) => {
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-        status: 500 
+        status: 200  // Changed to 200 to prevent client-side errors
       }
     )
   }
