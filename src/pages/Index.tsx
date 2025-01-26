@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { Category } from "@/types/directory";
 import { CategorySection } from "@/components/CategorySection";
@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import { StartupDetails } from "@/components/StartupDetails";
 import { motion, AnimatePresence } from "framer-motion";
+import { useToast } from "@/components/ui/use-toast";
 
 const getCategoryIcon = (categoryName: string): string => {
   if (!categoryName) return "brain";
@@ -30,6 +31,7 @@ const Index = () => {
   const [selectedStartup, setSelectedStartup] = useState<Tables<"AI Agent Data"> | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [mainContentWidth, setMainContentWidth] = useState("100%");
+  const { toast } = useToast();
 
   useEffect(() => {
     setMainContentWidth(selectedStartup ? "calc(100% - 400px)" : "100%");
@@ -46,6 +48,50 @@ const Index = () => {
       return data || [];
     },
   });
+
+  const fetchAssetsMutation = useMutation({
+    mutationFn: async (startup: Tables<"AI Agent Data">) => {
+      if (!startup.website_url || !startup.unique_id) return;
+
+      const response = await supabase.functions.invoke('fetch-website-assets', {
+        body: {
+          websiteUrl: startup.website_url,
+          uniqueId: startup.unique_id
+        }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      return response.data;
+    },
+    onSuccess: (data) => {
+      if (data?.faviconUrl) {
+        toast({
+          title: "Assets updated",
+          description: "Website favicon has been fetched and stored successfully.",
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Error fetching assets",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  useEffect(() => {
+    if (startups) {
+      startups.forEach(startup => {
+        if (startup.website_url && !startup.favicon_url) {
+          fetchAssetsMutation.mutate(startup);
+        }
+      });
+    }
+  }, [startups]);
 
   if (isLoading) {
     return (
@@ -143,23 +189,23 @@ const processStartupsIntoCategories = (startups: Tables<"AI Agent Data">[]): Cat
     if (!acc[category]) {
       acc[category] = [];
     }
-    acc[category].push(startup);
-    return acc;
-  }, {} as Record<string, Tables<"AI Agent Data">[]>);
-
-  return Object.entries(groupedStartups).map(([categoryName, categoryStartups]) => ({
-    id: categoryName.toLowerCase().replace(/\s+/g, "-"),
-    name: categoryName,
-    description: `Discover innovative ${categoryName} solutions`,
-    icon: getCategoryIcon(categoryName),
-    startups: categoryStartups.map(startup => ({
+    acc[category].push({
       id: startup.unique_id.toString(),
       name: startup.name || "",
       description: startup.product_description || "",
       logo: startup.favicon_url || startup.product_preview_image || "/placeholder.svg",
       features: startup.tag_line ? [startup.tag_line] : [],
       url: startup.website_url || "#",
-    })),
+    });
+    return acc;
+  }, {} as Record<string, any[]>);
+
+  return Object.entries(groupedStartups).map(([categoryName, categoryStartups]) => ({
+    id: categoryName.toLowerCase().replace(/\s+/g, "-"),
+    name: categoryName,
+    description: `Discover innovative ${categoryName} solutions`,
+    icon: getCategoryIcon(categoryName),
+    startups: categoryStartups,
     totalStartups: categoryStartups.length,
   }));
 };
