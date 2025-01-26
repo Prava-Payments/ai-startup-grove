@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Category } from "@/types/directory";
 import { CategorySection } from "@/components/CategorySection";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,12 +26,8 @@ const Index = () => {
   });
 
   // Update mainContentWidth when selectedStartup changes
-  useState(() => {
-    if (selectedStartup) {
-      setMainContentWidth("calc(100% - 400px)");
-    } else {
-      setMainContentWidth("100%");
-    }
+  useEffect(() => {
+    setMainContentWidth(selectedStartup ? "calc(100% - 400px)" : "100%");
   }, [selectedStartup]);
 
   if (isLoading) {
