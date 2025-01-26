@@ -52,31 +52,50 @@ serve(async (req) => {
         throw new Error(`Invalid URL: ${formattedUrl}`)
       }
 
-      // Get favicon using Google's favicon service
-      const faviconUrl = `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`
-      console.log('Fetching favicon from:', faviconUrl)
+      // Array of possible favicon URLs to try
+      const faviconUrls = [
+        `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`,
+        `${formattedUrl}/favicon.ico`,
+        `${formattedUrl}/favicon.png`,
+        `https://icon.horse/icon/${hostname}`,
+      ];
 
-      // Fetch the favicon with timeout
-      const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 10000) // 10 second timeout
-      
-      const faviconResponse = await fetch(faviconUrl, { 
-        signal: controller.signal 
-      }).finally(() => clearTimeout(timeout))
+      let faviconBlob = null;
+      let successfulUrl = null;
 
-      if (!faviconResponse.ok) {
-        throw new Error(`Failed to fetch favicon: ${faviconResponse.statusText}`)
+      // Try each URL until we get a valid favicon
+      for (const url of faviconUrls) {
+        console.log('Attempting to fetch favicon from:', url);
+        
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 5000);
+          
+          const response = await fetch(url, { signal: controller.signal })
+            .finally(() => clearTimeout(timeout));
+
+          if (response.ok) {
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('image')) {
+              const blob = await response.blob();
+              if (blob.size > 0) {
+                faviconBlob = blob;
+                successfulUrl = url;
+                break;
+              }
+            }
+          }
+        } catch (error) {
+          console.log(`Failed to fetch from ${url}:`, error.message);
+          continue;
+        }
       }
 
-      const contentType = faviconResponse.headers.get('content-type')
-      if (!contentType || !contentType.includes('image')) {
-        throw new Error('Invalid favicon content type')
+      if (!faviconBlob) {
+        throw new Error('Could not fetch a valid favicon from any source');
       }
 
-      const faviconBlob = await faviconResponse.blob()
-      if (faviconBlob.size === 0) {
-        throw new Error('Empty favicon received')
-      }
+      console.log('Successfully fetched favicon from:', successfulUrl);
       
       // Upload to Supabase Storage
       const fileName = `${uniqueId}.png`
@@ -95,16 +114,6 @@ serve(async (req) => {
       const { data: { publicUrl } } = supabase.storage
         .from('favicons')
         .getPublicUrl(fileName)
-
-      // Update the database with the favicon URL
-      const { error: updateError } = await supabase
-        .from('AI Agent Data')
-        .update({ favicon_url: publicUrl })
-        .eq('unique_id', uniqueId)
-
-      if (updateError) {
-        throw new Error(`Failed to update database: ${updateError.message}`)
-      }
 
       console.log('Successfully processed favicon:', publicUrl)
       return new Response(
