@@ -2,14 +2,15 @@ import { Category } from "@/types/directory";
 import { StartupCard } from "./StartupCard";
 import { 
   Brain, Bot, Users, Code, MessageSquare, 
-  Zap, Briefcase, Lightbulb, Boxes 
+  Zap, Briefcase, Lightbulb, Boxes,
+  LucideIcon
 } from "lucide-react";
 import { Card } from "./ui/card";
 import { Tables } from "@/integrations/supabase/types";
 
 // Define a type for the icon map to ensure type safety
 type IconMapType = {
-  [key: string]: typeof Brain;
+  [key: string]: LucideIcon;
 };
 
 // Ensure we have a valid icon mapping for every possible category
