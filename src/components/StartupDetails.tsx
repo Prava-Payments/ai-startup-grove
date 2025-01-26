@@ -2,6 +2,7 @@ import { Tables } from "@/integrations/supabase/types";
 import { Card, CardContent, CardHeader } from "./ui/card";
 import { X, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { ScrollArea } from "./ui/scroll-area";
 
 interface StartupDetailsProps {
   startup: Tables<"AI Agent Data"> | null;
@@ -18,10 +19,10 @@ export const StartupDetails = ({ startup, onClose }: StartupDetailsProps) => {
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
         transition={{ type: "spring", damping: 20, stiffness: 100 }}
-        className="fixed top-0 right-0 h-full w-[400px] bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-xl z-50 border-l border-gray-200 dark:border-gray-700"
+        className="fixed top-0 right-0 h-[calc(100vh-6rem)] mt-24 w-[400px] bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-xl z-50 border-l border-gray-200 dark:border-gray-700"
       >
-        <Card className="h-full border-0 rounded-none bg-transparent">
-          <CardHeader className="sticky top-0 z-10 backdrop-blur-sm bg-white/50 dark:bg-gray-800/50 border-b border-gray-200/50 dark:border-gray-700/50 pb-4">
+        <Card className="h-full border-0 rounded-none bg-transparent flex flex-col">
+          <CardHeader className="sticky top-0 z-10 backdrop-blur-sm bg-white/50 dark:bg-gray-800/50 border-b border-gray-200/50 dark:border-gray-700/50 pb-4 flex-shrink-0">
             <div className="flex flex-col gap-4">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -55,30 +56,32 @@ export const StartupDetails = ({ startup, onClose }: StartupDetailsProps) => {
               )}
             </div>
           </CardHeader>
-          <CardContent className="space-y-6 p-6 overflow-y-auto max-h-[calc(100vh-5rem)]">
-            {startup.product_preview_image && (
-              <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
-                <img
-                  src={startup.product_preview_image}
-                  alt={`${startup.name || 'Startup'} preview`}
-                  className="object-cover w-full h-full"
-                  loading="lazy"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = '/placeholder.svg';
-                  }}
-                />
-              </div>
-            )}
-            {startup.product_description && (
-              <div>
-                <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">About</h3>
-                <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-                  {startup.product_description}
-                </p>
-              </div>
-            )}
-          </CardContent>
+          <ScrollArea className="flex-1">
+            <CardContent className="space-y-6 p-6">
+              {startup.product_preview_image && (
+                <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+                  <img
+                    src={startup.product_preview_image}
+                    alt={`${startup.name || 'Startup'} preview`}
+                    className="object-cover w-full h-full"
+                    loading="lazy"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = '/placeholder.svg';
+                    }}
+                  />
+                </div>
+              )}
+              {startup.product_description && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">About</h3>
+                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                    {startup.product_description}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </ScrollArea>
         </Card>
       </motion.div>
     </AnimatePresence>
