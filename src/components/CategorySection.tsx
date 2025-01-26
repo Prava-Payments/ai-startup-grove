@@ -4,8 +4,22 @@ import { Brain, Bot, Users, Code, MessageSquare, Zap, Briefcase, Lightbulb, Boxe
 import { Card } from "./ui/card";
 import { Tables } from "@/integrations/supabase/types";
 
+// Define a type for the icon map to ensure type safety
+type IconMapType = {
+  brain: typeof Brain;
+  robot: typeof Bot;
+  users: typeof Users;
+  code: typeof Code;
+  chat: typeof MessageSquare;
+  automation: typeof Zap;
+  business: typeof Briefcase;
+  innovation: typeof Lightbulb;
+  other: typeof Boxes;
+  default: typeof Brain;
+};
+
 // Ensure we have a valid icon mapping for every possible category
-const iconMap = {
+const iconMap: IconMapType = {
   brain: Brain,
   robot: Bot,
   users: Users,
@@ -15,9 +29,8 @@ const iconMap = {
   business: Briefcase,
   innovation: Lightbulb,
   other: Boxes,
-  // Add a default fallback
   default: Brain
-} as const;
+};
 
 interface CategorySectionProps {
   category: Category;
@@ -32,9 +45,9 @@ const formatCategoryName = (name: string) => {
     .join(' ');
 };
 
-// Ensure we always return a valid icon key
-const getCategoryIcon = (categoryName: string): keyof typeof iconMap => {
-  const nameToIcon: Record<string, keyof typeof iconMap> = {
+// Ensure we always return a valid icon key that exists in our icon map
+const getCategoryIcon = (categoryName: string): keyof IconMapType => {
+  const nameToIcon: Record<string, keyof IconMapType> = {
     "Conversational AI": "chat",
     "Task Automation": "automation",
     "Personal Assistants": "users",
@@ -45,6 +58,8 @@ const getCategoryIcon = (categoryName: string): keyof typeof iconMap => {
     "Robotics": "robot",
     "Other": "other"
   };
+  
+  // Return the mapped icon key if it exists, otherwise return "default"
   return nameToIcon[categoryName] || "default";
 };
 
@@ -64,9 +79,12 @@ const getCategoryDescription = (categoryName: string): string => {
 };
 
 export const CategorySection = ({ category, isPreview = false, onStartupClick }: CategorySectionProps) => {
-  const iconKey = getCategoryIcon(formatCategoryName(category.name));
-  const IconComponent = iconMap[iconKey];
-  const categoryName = formatCategoryName(category.name);
+  // Ensure we have a valid category name
+  const categoryName = formatCategoryName(category?.name || "Other");
+  // Get the icon key and ensure it exists in our icon map
+  const iconKey = getCategoryIcon(categoryName);
+  // Get the icon component, falling back to Brain if something goes wrong
+  const IconComponent = iconMap[iconKey] || Brain;
 
   return (
     <section className={isPreview ? "" : "mb-12"}>
