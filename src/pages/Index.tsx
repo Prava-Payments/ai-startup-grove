@@ -51,20 +51,35 @@ const Index = () => {
 
   const fetchAssetsMutation = useMutation({
     mutationFn: async (startup: Tables<"AI Agent Data">) => {
-      if (!startup.website_url || !startup.unique_id) return;
-
-      const response = await supabase.functions.invoke('fetch-website-assets', {
-        body: {
-          websiteUrl: startup.website_url,
-          uniqueId: startup.unique_id
-        }
-      });
-
-      if (response.error) {
-        throw new Error(response.error.message);
+      if (!startup.website_url || !startup.unique_id) {
+        throw new Error("Missing required startup data");
       }
 
-      return response.data;
+      // Format the URL if needed
+      let websiteUrl = startup.website_url;
+      if (!websiteUrl.startsWith('http')) {
+        websiteUrl = `https://${websiteUrl}`;
+      }
+
+      try {
+        const response = await supabase.functions.invoke('fetch-website-assets', {
+          body: {
+            websiteUrl,
+            uniqueId: startup.unique_id
+          }
+        });
+
+        console.log('Edge function response:', response);
+
+        if (response.error) {
+          throw new Error(response.error.message || 'Failed to fetch assets');
+        }
+
+        return response.data;
+      } catch (error) {
+        console.error('Error in fetchAssetsMutation:', error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
       if (data?.faviconUrl) {
@@ -74,13 +89,15 @@ const Index = () => {
         });
       }
     },
-    onError: (error) => {
+    onError: (error: Error) => {
+      console.error('Mutation error:', error);
       toast({
         title: "Error fetching assets",
-        description: error.message,
+        description: error.message || "Failed to fetch website assets",
         variant: "destructive",
       });
     },
+    retry: 2, // Add retry logic
   });
 
   useEffect(() => {
