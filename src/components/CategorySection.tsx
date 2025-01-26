@@ -9,9 +9,7 @@ import { Card } from "./ui/card";
 import { Tables } from "@/integrations/supabase/types";
 
 // Define a type for the icon map to ensure type safety
-type IconMapType = {
-  [key: string]: LucideIcon;
-};
+type IconMapType = Record<string, LucideIcon>;
 
 // Ensure we have a valid icon mapping for every possible category
 const iconMap: IconMapType = {
@@ -23,8 +21,7 @@ const iconMap: IconMapType = {
   automation: Zap,
   business: Briefcase,
   innovation: Lightbulb,
-  other: Boxes,
-  default: Brain
+  other: Boxes
 };
 
 interface CategorySectionProps {
@@ -42,7 +39,7 @@ const formatCategoryName = (name: string | undefined): string => {
 };
 
 const getCategoryIcon = (categoryName: string): string => {
-  if (!categoryName) return "default";
+  if (!categoryName) return "brain";
   
   const nameToIcon: Record<string, string> = {
     "Conversational AI": "chat",
@@ -56,7 +53,7 @@ const getCategoryIcon = (categoryName: string): string => {
     "Other": "other"
   };
   
-  return nameToIcon[categoryName] || "default";
+  return nameToIcon[categoryName] || "brain";
 };
 
 const getCategoryDescription = (categoryName: string): string => {
