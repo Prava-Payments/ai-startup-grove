@@ -39,6 +39,7 @@ interface CategorySectionProps {
 }
 
 const formatCategoryName = (name: string) => {
+  if (!name) return "Other";
   return name
     .split('-')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
@@ -47,6 +48,8 @@ const formatCategoryName = (name: string) => {
 
 // Ensure we always return a valid icon key that exists in our icon map
 const getCategoryIcon = (categoryName: string): keyof IconMapType => {
+  if (!categoryName) return "default";
+  
   const nameToIcon: Record<string, keyof IconMapType> = {
     "Conversational AI": "chat",
     "Task Automation": "automation",
@@ -59,11 +62,12 @@ const getCategoryIcon = (categoryName: string): keyof IconMapType => {
     "Other": "other"
   };
   
-  // Return the mapped icon key if it exists, otherwise return "default"
   return nameToIcon[categoryName] || "default";
 };
 
 const getCategoryDescription = (categoryName: string): string => {
+  if (!categoryName) return "Innovative AI solutions transforming the industry.";
+  
   const descriptions: Record<string, string> = {
     "Conversational AI": "AI-powered chatbots and conversational interfaces that enable natural language interactions.",
     "Task Automation": "Tools and platforms that automate repetitive tasks and streamline workflows.",
@@ -79,12 +83,17 @@ const getCategoryDescription = (categoryName: string): string => {
 };
 
 export const CategorySection = ({ category, isPreview = false, onStartupClick }: CategorySectionProps) => {
+  if (!category) {
+    console.warn('CategorySection received null or undefined category');
+    return null;
+  }
+
   // Ensure we have a valid category name
-  const categoryName = formatCategoryName(category?.name || "Other");
+  const categoryName = formatCategoryName(category.name || "Other");
   // Get the icon key and ensure it exists in our icon map
   const iconKey = getCategoryIcon(categoryName);
   // Get the icon component, falling back to Brain if something goes wrong
-  const IconComponent = iconMap[iconKey] || Brain;
+  const IconComponent = iconMap[iconKey];
 
   return (
     <section className={isPreview ? "" : "mb-12"}>
