@@ -23,10 +23,13 @@ serve(async (req) => {
     if (!websiteUrl || !uniqueId) {
       console.error('Missing required parameters:', { websiteUrl, uniqueId })
       return new Response(
-        JSON.stringify({ error: 'Website URL and unique ID are required' }),
+        JSON.stringify({ 
+          error: 'Website URL and unique ID are required',
+          faviconUrl: null 
+        }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: 400 
+          status: 200 
         }
       )
     }
@@ -49,7 +52,17 @@ serve(async (req) => {
       try {
         hostname = new URL(formattedUrl).hostname
       } catch (e) {
-        throw new Error(`Invalid URL: ${formattedUrl}`)
+        console.error('Invalid URL:', formattedUrl, e)
+        return new Response(
+          JSON.stringify({ 
+            error: `Invalid URL: ${formattedUrl}`,
+            faviconUrl: null 
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200
+          }
+        )
       }
 
       // Array of possible favicon URLs to try
@@ -70,7 +83,7 @@ serve(async (req) => {
         
         try {
           const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 5000);
+          const timeout = setTimeout(() => controller.abort(), 10000); // Increased timeout to 10 seconds
           
           const response = await fetch(url, { 
             signal: controller.signal,
@@ -97,7 +110,7 @@ serve(async (req) => {
       }
 
       if (!faviconBlob) {
-        // If no favicon found, return a 200 response with null faviconUrl
+        console.log('No valid favicon found for:', hostname);
         return new Response(
           JSON.stringify({ 
             faviconUrl: null,
@@ -122,7 +135,17 @@ serve(async (req) => {
         })
 
       if (uploadError) {
-        throw new Error(`Failed to upload favicon: ${uploadError.message}`)
+        console.error('Failed to upload favicon:', uploadError);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Failed to upload favicon',
+            faviconUrl: null 
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200
+          }
+        )
       }
 
       // Get public URL
@@ -158,11 +181,12 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: error.message,
-          details: 'Failed to process favicon'
+          details: 'Failed to process favicon',
+          faviconUrl: null
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: 200  // Changed to 200 to prevent client-side errors
+          status: 200
         }
       )
     }
@@ -172,11 +196,12 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error',
-        details: error.message 
+        details: error.message,
+        faviconUrl: null
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-        status: 200  // Changed to 200 to prevent client-side errors
+        status: 200
       }
     )
   }
