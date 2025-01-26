@@ -36,12 +36,13 @@ serve(async (req) => {
 
     try {
       // Get favicon using Google's favicon service
-      const faviconUrl = `https://www.google.com/s2/favicons?domain=${new URL(websiteUrl).hostname}&sz=128`
+      const hostname = new URL(websiteUrl).hostname
+      const faviconUrl = `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`
       console.log('Fetching favicon from:', faviconUrl)
 
       // Fetch the favicon with timeout
       const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+      const timeout = setTimeout(() => controller.abort(), 5000) // 5 second timeout
       
       const faviconResponse = await fetch(faviconUrl, { 
         signal: controller.signal 
