@@ -38,7 +38,8 @@ const getCategoryIcon = (categoryName: string): string => {
     "Business Solutions": "business",
     "Innovation": "innovation",
     "AI Research": "brain",
-    "Robotics": "robot"
+    "Robotics": "robot",
+    "Other": "other"
   };
   return nameToIcon[categoryName] || "other";
 };
@@ -52,13 +53,15 @@ const getCategoryDescription = (categoryName: string): string => {
     "Business Solutions": "Enterprise-focused AI tools for business process optimization.",
     "Innovation": "Cutting-edge AI applications pushing technological boundaries.",
     "AI Research": "Companies focused on advancing AI technology and research.",
-    "Robotics": "AI-powered robotics and automation solutions."
+    "Robotics": "AI-powered robotics and automation solutions.",
+    "Other": "Other innovative AI solutions transforming various industries."
   };
   return descriptions[categoryName] || "Innovative AI solutions transforming the industry.";
 };
 
 export const CategorySection = ({ category, isPreview = false, onStartupClick }: CategorySectionProps) => {
   const iconKey = getCategoryIcon(formatCategoryName(category.name));
+  // Ensure we always have a valid icon component by providing a fallback
   const IconComponent = iconMap[iconKey] || Brain;
   const categoryName = formatCategoryName(category.name);
 
