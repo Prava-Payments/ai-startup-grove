@@ -6,16 +6,7 @@ import { Tables } from "@/integrations/supabase/types";
 
 // Define a type for the icon map to ensure type safety
 type IconMapType = {
-  brain: typeof Brain;
-  robot: typeof Bot;
-  users: typeof Users;
-  code: typeof Code;
-  chat: typeof MessageSquare;
-  automation: typeof Zap;
-  business: typeof Briefcase;
-  innovation: typeof Lightbulb;
-  other: typeof Boxes;
-  default: typeof Brain;
+  [key: string]: typeof Brain;
 };
 
 // Ensure we have a valid icon mapping for every possible category
@@ -38,7 +29,7 @@ interface CategorySectionProps {
   onStartupClick?: (startup: Tables<"AI Agent Data">) => void;
 }
 
-const formatCategoryName = (name: string) => {
+const formatCategoryName = (name: string | undefined): string => {
   if (!name) return "Other";
   return name
     .split('-')
@@ -46,11 +37,10 @@ const formatCategoryName = (name: string) => {
     .join(' ');
 };
 
-// Ensure we always return a valid icon key that exists in our icon map
-const getCategoryIcon = (categoryName: string): keyof IconMapType => {
+const getCategoryIcon = (categoryName: string): string => {
   if (!categoryName) return "default";
   
-  const nameToIcon: Record<string, keyof IconMapType> = {
+  const nameToIcon: Record<string, string> = {
     "Conversational AI": "chat",
     "Task Automation": "automation",
     "Personal Assistants": "users",
@@ -89,11 +79,11 @@ export const CategorySection = ({ category, isPreview = false, onStartupClick }:
   }
 
   // Ensure we have a valid category name
-  const categoryName = formatCategoryName(category.name || "Other");
+  const categoryName = formatCategoryName(category.name);
   // Get the icon key and ensure it exists in our icon map
   const iconKey = getCategoryIcon(categoryName);
   // Get the icon component, falling back to Brain if something goes wrong
-  const IconComponent = iconMap[iconKey];
+  const IconComponent = iconMap[iconKey] || Brain;
 
   return (
     <section className={isPreview ? "" : "mb-12"}>
