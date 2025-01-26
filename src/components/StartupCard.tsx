@@ -1,7 +1,9 @@
 import { Card, CardHeader } from "./ui/card";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Image } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface StartupCardProps {
   startup: {
@@ -17,6 +19,42 @@ interface StartupCardProps {
 }
 
 export const StartupCard = ({ startup, index, onClick }: StartupCardProps) => {
+  const [favicon, setFavicon] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFavicon = async () => {
+      if (!startup?.url) return;
+
+      try {
+        setIsLoading(true);
+        
+        // Call the fetch-favicon function
+        const { data, error } = await supabase.functions.invoke('fetch-favicon', {
+          body: {
+            websiteUrl: startup.url,
+            uniqueId: startup.id
+          }
+        });
+
+        if (error) {
+          console.error('Error fetching favicon:', error);
+          return;
+        }
+
+        if (data?.faviconUrl) {
+          setFavicon(data.faviconUrl);
+        }
+      } catch (error) {
+        console.error('Error in fetchFavicon:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFavicon();
+  }, [startup?.url, startup?.id]);
+
   // Early return if startup is null or undefined
   if (!startup || typeof startup !== 'object') {
     console.warn('StartupCard received invalid startup data');
@@ -59,15 +97,19 @@ export const StartupCard = ({ startup, index, onClick }: StartupCardProps) => {
               {String(index).padStart(2, '0')}.
             </span>
             <div className="relative">
-              <img 
-                src={startup.logo || '/placeholder.svg'} 
-                alt={startup.name || 'Startup logo'} 
-                className="w-12 h-12 rounded-lg object-cover bg-white dark:bg-gray-700 p-1 border border-gray-200/50 dark:border-gray-700/50 transition-transform group-hover:scale-105"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = '/placeholder.svg';
-                }}
-              />
+              {isLoading ? (
+                <div className="w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-700 animate-pulse" />
+              ) : (
+                <img 
+                  src={favicon || startup.logo || '/placeholder.svg'} 
+                  alt={startup.name || 'Startup logo'} 
+                  className="w-12 h-12 rounded-lg object-cover bg-white dark:bg-gray-700 p-1 border border-gray-200/50 dark:border-gray-700/50 transition-transform group-hover:scale-105"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = '/placeholder.svg';
+                  }}
+                />
+              )}
               <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           </div>
