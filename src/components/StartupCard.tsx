@@ -17,21 +17,29 @@ interface StartupCardProps {
 }
 
 export const StartupCard = ({ startup, index, onClick }: StartupCardProps) => {
-  if (!startup) return null;
+  // Early return if startup is null or undefined
+  if (!startup || typeof startup !== 'object') {
+    console.warn('StartupCard received invalid startup data');
+    return null;
+  }
 
   const handleClick = () => {
-    if (onClick && startup) {
-      // Safely cast the startup data
+    if (!onClick || !startup) return;
+    
+    try {
+      // Safely cast the startup data with default values
       const startupData: Tables<"AI Agent Data"> = {
-        unique_id: parseInt(startup.id),
+        unique_id: parseInt(startup.id || '0'),
         name: startup.name || "",
         product_description: startup.description || "",
         product_preview_image: startup.logo || "",
         product_category: "",
-        tag_line: startup.features[0] || "",
+        tag_line: startup.features?.[0] || "",
         website_url: startup.url || "",
       };
       onClick(startupData);
+    } catch (error) {
+      console.error('Error processing startup data:', error);
     }
   };
 
@@ -83,7 +91,7 @@ export const StartupCard = ({ startup, index, onClick }: StartupCardProps) => {
                 </a>
               )}
             </div>
-            {startup.features?.[0] && (
+            {Array.isArray(startup.features) && startup.features[0] && (
               <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
                 {startup.features[0]}
               </p>
