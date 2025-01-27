@@ -48,8 +48,7 @@ const getCategoryIcon = (categoryName: string): keyof typeof iconMap => {
     "Other": "other"
   };
   
-  const iconKey = nameToIcon[categoryName];
-  return iconKey && iconMap[iconKey] ? iconKey : "brain";
+  return nameToIcon[categoryName] || "brain";
 };
 
 const getCategoryDescription = (categoryName: string): string => {
@@ -68,6 +67,7 @@ const getCategoryDescription = (categoryName: string): string => {
 };
 
 export const CategorySection = ({ category, isPreview = false, onStartupClick }: CategorySectionProps) => {
+  // Early return if category is null or undefined
   if (!category) {
     console.warn('CategorySection received null or undefined category');
     return null;
@@ -75,18 +75,22 @@ export const CategorySection = ({ category, isPreview = false, onStartupClick }:
 
   const categoryName = formatCategoryName(category.name);
   const iconKey = getCategoryIcon(categoryName);
-  const IconComponent = iconMap[iconKey] || Brain;
-
-  // Ensure startups is an array and filter out null/undefined values
-  const validStartups = Array.isArray(category.startups) 
-    ? category.startups.filter(startup => startup && typeof startup === 'object')
-    : [];
+  const IconComponent = iconMap[iconKey];
 
   // Early return if we don't have the minimum required data
   if (!categoryName || !IconComponent) {
     console.warn('Missing required category data');
     return null;
   }
+
+  // Ensure startups is an array and filter out null/undefined values
+  const validStartups = Array.isArray(category.startups) 
+    ? category.startups.filter((startup): startup is NonNullable<typeof startup> => 
+        startup !== null && 
+        startup !== undefined && 
+        typeof startup === 'object'
+      )
+    : [];
 
   return (
     <section className={isPreview ? "" : "mb-12"}>

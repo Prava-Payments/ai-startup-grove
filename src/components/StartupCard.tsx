@@ -38,9 +38,9 @@ export const StartupCard = ({ startup, index, onClick }: StartupCardProps) => {
     if (!onClick) return;
     
     try {
-      // Safely cast the startup data with default values
+      // Type assertion to ensure the data matches the expected format
       const startupData: Tables<"AI Agent Data"> = {
-        unique_id: parseInt(safeStartup.id || '0'),
+        unique_id: parseInt(safeStartup.id) || 0,
         name: safeStartup.name,
         product_description: safeStartup.description,
         product_preview_image: safeStartup.logo,
