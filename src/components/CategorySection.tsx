@@ -77,6 +77,11 @@ export const CategorySection = ({ category, isPreview = false, onStartupClick }:
   const iconKey = getCategoryIcon(categoryName);
   const IconComponent = iconMap[iconKey] || Brain;
 
+  // Ensure startups is an array and filter out null/undefined values
+  const validStartups = Array.isArray(category.startups) 
+    ? category.startups.filter(startup => startup && typeof startup === 'object')
+    : [];
+
   return (
     <section className={isPreview ? "" : "mb-12"}>
       {isPreview ? (
@@ -124,15 +129,13 @@ export const CategorySection = ({ category, isPreview = false, onStartupClick }:
             </div>
           </Card>
           <div className="space-y-4">
-            {Array.isArray(category.startups) && category.startups.map((startup, index) => (
-              startup && (
-                <StartupCard 
-                  key={startup.id} 
-                  startup={startup}
-                  index={index + 1}
-                  onClick={onStartupClick}
-                />
-              )
+            {validStartups.map((startup, index) => (
+              <StartupCard 
+                key={startup.id} 
+                startup={startup}
+                index={index + 1}
+                onClick={onStartupClick}
+              />
             ))}
           </div>
         </>
