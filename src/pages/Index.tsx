@@ -55,13 +55,13 @@ const Index = () => {
         throw new Error("Missing required startup data");
       }
 
-      // Format the URL if needed
       let websiteUrl = startup.website_url;
       if (!websiteUrl.startsWith('http')) {
         websiteUrl = `https://${websiteUrl}`;
       }
 
       try {
+        console.log('Fetching assets for:', websiteUrl);
         const response = await supabase.functions.invoke('fetch-website-assets', {
           body: {
             websiteUrl,
@@ -81,11 +81,11 @@ const Index = () => {
         throw error;
       }
     },
-    onSuccess: (data) => {
-      if (data?.faviconUrl) {
+    onSuccess: (data, variables) => {
+      if (data?.screenshotUrl) {
         toast({
           title: "Assets updated",
-          description: "Website favicon has been fetched and stored successfully.",
+          description: `Screenshots captured for ${variables.name}`,
         });
       }
     },
@@ -97,13 +97,12 @@ const Index = () => {
         variant: "destructive",
       });
     },
-    retry: 2, // Add retry logic
   });
 
   useEffect(() => {
     if (startups) {
       startups.forEach(startup => {
-        if (startup.website_url && !startup.favicon_url) {
+        if (startup.website_url && !startup.screenshot_url) {
           fetchAssetsMutation.mutate(startup);
         }
       });
