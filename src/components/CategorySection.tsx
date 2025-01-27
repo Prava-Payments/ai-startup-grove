@@ -82,6 +82,12 @@ export const CategorySection = ({ category, isPreview = false, onStartupClick }:
     ? category.startups.filter(startup => startup && typeof startup === 'object')
     : [];
 
+  // Early return if we don't have the minimum required data
+  if (!categoryName || !IconComponent) {
+    console.warn('Missing required category data');
+    return null;
+  }
+
   return (
     <section className={isPreview ? "" : "mb-12"}>
       {isPreview ? (
